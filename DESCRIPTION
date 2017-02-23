@@ -3,15 +3,16 @@ Type: Package
 Title: Tools for analysing and writing input and output files for USGS MODFLOW
 Version: 0.1.0
 Author: Christopher Barry
-Maintainer: <cjb309@bham.ac.uk>
-Description: Designed for the popular USGS MODFLOW Finite Difference groundwater flow
-    simulation software (http://water.usgs.gov/ogw/modflow/).  There are
-    functions to read binary output data arrays into R objects or NetCDF files
-    (using the RNetCDF package).  There are functions for reading input files
-    which contain important simulation information and for writing input files
-    from R objects.  Other functions are utility functions that allow analysis
-    and visualisation of data.  These functions have been developed more or less as I have required them.
-    If you would like to see a feature added, then e-mail me.
+Maintainer: <cjbarry.hydrogeo@gmail.com>
+Description: Designed for the popular USGS MODFLOW Finite Difference
+    groundwater flow simulation software (http://water.usgs.gov/ogw/modflow/).
+    There are functions to read binary output data arrays into R objects or
+    NetCDF files (using the RNetCDF package).  There are functions for reading
+    input files which contain important simulation information and for writing
+    input files from R objects.  Other functions are utility functions that
+    allow analysis and visualisation of data.  These functions have been
+    developed more or less as I have required them. If you would like to see a
+    feature added, then e-mail me.
 License: MIT
 LazyData: TRUE
 Depends: R (>= 3.0.0), data.table, plyr, RNetCDF, stringr
