@@ -439,3 +439,185 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
 
   print.nc(nc)
 }
+
+#' MT3DMS results to NetCDF
+#'
+#' @param dir
+#' character string;
+#' directory in which input and output files are stored
+#' @param mtrt
+#' character string;
+#' default file name, minus extensions, for the data sets
+#' @param ntts
+#' integer \code{[]};
+#' @param gw.nc
+#' @param file
+#' @param Nspecies
+#' @param species.names
+#' @param files
+#' @param CNOFLO
+#' @param title
+#' @param author
+#' @param conc.unit
+#' @param length.unit
+#' @param time.unit
+#' @param updating
+#'
+#' @return
+#' @export
+#'
+#' @examples
+MT3DMS.nc <- function(dir, mtrt, ntts = Inf, gw.nc, file = paste0(mtrt, ".nc"),
+                      Nspecies = 10L, species.names = as.character(1:Nspecies),
+                      files = cbind(mob = paste0(mtrt, 1:Nspecies, ".ucn"),
+                                    immob = paste0(mtrt, "_sorbed", 1:Nspecies, ".ucn")),
+                      CNOFLO = -1, title = "untitled MT3DMS data set",
+                      author = "", conc.unit = "kg/m^3",
+                      length.unit = "metre", time.unit = "day",
+                      updating = TRUE){
+  od <- getwd()
+  setwd(dir)
+  on.exit(setwd(od), add = TRUE)
+
+  mobile <- if(NCOL(files) > 1L){
+    cbind(!logical(nrow(files)), logical(nrow(files)))
+  }else !logical(length(files))
+
+  any.immob <- NCOL(files) > 1L
+  files <- as.matrix(files)
+  if(ncol(files) == 1L) files <- cbind(files, "")
+
+  if(updating && file.exists(file)){
+    nc <- open.nc(file)
+    if(missing(title)) title <- att.get.nc(nc, "NC_GLOBAL", "title")
+    if(missing(author)) author <- att.get.nc(nc, "NC_GLOBAL", "author")
+    if(missing(length.unit)) length.unit <- att.get.nc(nc, "gccs", "units")
+    if(missing(time.unit)) time.unit <- att.get.nc(nc, "time", "units")
+    close.nc(nc)
+  }
+
+  nc <- create.nc(file)
+  on.exit(print.nc(nc), add = TRUE)
+  on.exit(close.nc(nc), add = TRUE)
+
+  # get co-ordinate data from the MODFLOW data set
+  gwdata <- switch(class(gw.nc),
+                   character = {
+                     on.exit(close.nc(gwdata), add = TRUE)
+                     open.nc(gw.nc)
+                   },
+                   NetCDF = gw.nc,
+                   stop({
+                     "gw.nc should be a NetCDF dataset or a character string path to one"
+                   }))
+
+  # copy spatial dimensions
+  ds.to.copy <- c("NCOL", "NROW", "NLAY", "NCOL+1", "NROW+1", "NLAY+1")
+  ds.info <- lapply(ds.to.copy, dim.inq.nc, ncfile = gwdata)
+  l_ply(ds.info, function(lst) dim.def.nc(nc, lst$name, lst$length))
+
+  nC <- dim.inq.nc(gwdata, "NCOL")$length
+  nR <- dim.inq.nc(gwdata, "NROW")$length
+  nL <- dim.inq.nc(gwdata, "NLAY")$length
+
+  # new attributes
+  att.put.nc(nc, "NC_GLOBAL", "title", "NC_CHAR", title)
+  att.put.nc(nc, "NC_GLOBAL", "author", "NC_CHAR", author)
+  att.put.nc(nc, "NC_GLOBAL", "history", "NC_CHAR",
+             paste("Created on", date(),
+                   "by MT3DMS.nc function in R, coded by Christopher Barry"))
+  att.put.nc(nc, "NC_GLOBAL", "note", "NC_CHAR", {
+    "co-ordinate variables (gccs, grcs, elev and time) are relative to the origin, datum and start time as appropriate"
+  })
+
+  # copy certain attributes
+  att.copy.nc(gwdata, "NC_GLOBAL", "origin-x", nc, "NC_GLOBAL")
+  att.copy.nc(gwdata, "NC_GLOBAL", "origin-y", nc, "NC_GLOBAL")
+  att.copy.nc(gwdata, "NC_GLOBAL", "datum", nc, "NC_GLOBAL")
+  att.copy.nc(gwdata, "NC_GLOBAL", "start_time", nc, "NC_GLOBAL")
+  try(att.copy.nc(gwdata, "NC_GLOBAL", "start_date", nc, "NC_GLOBAL"), TRUE)
+
+  # define new dimensions
+  dim.def.nc(nc, "NTTS", unlim = TRUE)
+  dim.def.nc(nc, "msl", 16L)
+
+  # copy co-ordinate information
+  var.def.nc(nc, "gccs", "NC_DOUBLE", "NCOL+1")
+  var.def.nc(nc, "grcs", "NC_DOUBLE", "NROW+1")
+  var.def.nc(nc, "elev", "NC_DOUBLE", c("NCOL", "NROW", "NLAY+1"))
+
+  var.put.nc(nc, "gccs", var.get.nc(gwdata, "gccs"))
+  var.put.nc(nc, "grcs", var.get.nc(gwdata, "grcs"))
+  var.put.nc(nc, "elev", var.get.nc(gwdata, "elev"))
+
+  # time and time point labels
+  var.def.nc(nc, "time", "NC_DOUBLE", "NTTS")
+  var.def.nc(nc, "sp_ts_tts", "NC_CHAR", c("msl", "NTTS"))
+
+  att.put.nc(nc, "sp_ts_tts", "description", "NC_CHAR",
+             "stress period_flow time step_transport time step")
+
+  # copy units and descriptions
+  for(vn in c("gccs", "grcs", "elev", "time")){
+    try(att.copy.nc(gwdata, vn, "description", nc, vn), TRUE)
+    try(att.copy.nc(gwdata, vn, "units", nc, vn), TRUE)
+  }
+
+  times <- double(1000L) + NA
+  ttstssps <- character(1000L); ttstssps[] <- NA_character_
+
+  first <- TRUE
+  for(i in 1:Nspecies){
+    for(mim in c("mobile", "immobile")){
+      vn <- paste0("C_", species.names[i], "_", substr(mim, 1L, 1L))
+      if(file.exists(files[i, switch(mim, mobile = 1L, immobile = 2L)])){
+        cat("found results for", mim, "species:", species.names[i], "\n")
+
+        var.def.nc(nc, vn, "NC_FLOAT",
+                   c("NCOL", "NROW", "NLAY", "NTTS"))
+        att.put.nc(nc, vn, "longname", "NC_CHAR",
+                   paste("concentration of", species.names[i]))
+        # att.put.nc(nc, vn, "mobile", "NC_INT",
+        #            switch(mim, mobile = 1L, immobile = 0L))
+        att.put.nc(nc, vn, "mobileTXT", "NC_CHAR", mim)
+        att.put.nc(nc, vn, "units", "NC_CHAR", conc.unit)
+        att.put.nc(nc, vn, "missing_value", "NC_FLOAT", CNOFLO)
+
+        to.read <- file(files[i, switch(mim, mobile = 1L, immobile = 2L)],
+                        "rb")
+
+        an <- 0L
+        repeat{
+          ttstssp <- readBin(to.read, "integer", 3L, 4L)
+          if(!length(ttstssp) || an > ntts - 1L) break
+          time <- readBin(to.read, "double", 1L, 4L)
+
+          readChar(to.read, 16L) # "   CONCENTRATION"
+          lay <- readBin(to.read, "integer", 3L, 4L)[3L] # C, R, L
+
+          # update time details
+          if(lay == 1L) an <- an + 1L
+          if(first){
+            ttstssps[an] <- paste(rev(ttstssp), collapse = "_")
+            times[an] <- time
+          }
+
+          ar <- readBin(to.read, "double", nC*nR, 4L)
+
+          var.put.nc(nc, vn, ar,
+                     c(1L, 1L, lay, an), c(nC, nR, 1L, 1L))
+          cat(".")
+
+        }; close(to.read); cat("\n")
+
+        first <- FALSE
+      }else{
+        cat("not found results for", mim, "species:", species.names[i], "\n")
+      }
+    }
+  }
+
+  var.put.nc(nc, "time", times[!is.na(times)])
+  var.put.nc(nc, "sp_ts_tts", ttstssps[!is.na(ttstssps)])
+  invisible()
+}
