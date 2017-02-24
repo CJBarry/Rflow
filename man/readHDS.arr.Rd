@@ -4,9 +4,9 @@
 \alias{readHDS.arr}
 \title{Read Head Save array}
 \usage{
-readHDS.arr(file, conc = F, time.only = F, time.bn = 4L, hd.bn = 4L,
-  show.help = T, nf.to.NA = F, nf.val = 999, CRs = list("all", "all"),
-  lays = "all", sp_ts = "all")
+readHDS.arr(file, conc = FALSE, time.only = FALSE, time.bn = 4L,
+  hd.bn = 4L, show.help = TRUE, nf.to.NA = FALSE, nf.val = 999,
+  CRs = list("all", "all"), lays = "all", sp_ts = "all")
 }
 \arguments{
 \item{file}{character;
@@ -19,10 +19,10 @@ is the file in fact an unformatted concentration file (MT3D output)?}
 only read the model time information and discard the head data}
 
 \item{time.bn}{integer, 4 or 8;
-how many bytes do the time records occupy?}
+how many bytes do the time records occupy (generally 4)?}
 
 \item{hd.bn}{integer, 4 or 8;
-how many bytes to the head records occupy?}
+how many bytes to the head records occupy (generally 4)?}
 
 \item{show.help}{logical;
 show what is being read and print message describing output?}
@@ -42,6 +42,14 @@ which are requested}
 \item{sp_ts}{either "all", a length-2 integer vector or a 2-column matrix;
 which stress period-time step references to return}
 }
+\value{
+a list with one or two elements:\cr
+  \code{$Head}: num \code{[NCOL, NROW, NLAY, NTS]}; head values, only if
+   \code{time.only = FALSE}
+  \code{$time}: num \code{[NTS]}; time at end of each time step,
+   relative to model start
+}
 \description{
 Read Head Save array
 }
+
