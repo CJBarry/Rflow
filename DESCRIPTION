@@ -16,11 +16,11 @@ Description: Designed for the popular USGS MODFLOW Finite Difference
 License: MIT
 LazyData: TRUE
 Depends:
-    R (>= 3.0.0),
+    R (>= 3.0.0)
+Imports:
+    graphics,
     data.table,
     plyr,
     RNetCDF,
     stringr
-Imports:
-    graphics
 RoxygenNote: 5.0.1

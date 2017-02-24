@@ -12,16 +12,20 @@
 #'
 #' @return
 #'
+#' @importFrom stringr str_extract_all
+#'
 #' @examples
 expected.lines.RIARRAY <- function(header.txt, ncol, nrow, nlay = 1L){
-  if(identical(as.integer(substr(header.txt[1], 1, 10)), 0L)) return(0L) #constant value
+  # constant value
+  if(identical(as.integer(substr(header.txt[1], 1, 10)), 0L)) return(0L)
 
   fmtin <- substr(header.txt, 21, 40)
   fmtin <- as.numeric(str_extract_all(trimws(fmtin), "\\d+", T))
 
   valperline <- fmtin[1]
 
-  lineperrow <- ncol %/% valperline + as.logical(ncol %% valperline) #last term 0 if exact multiple, 1 otherwise
+  # last term 0 if exact multiple, 1 otherwise
+  lineperrow <- ncol %/% valperline + as.logical(ncol %% valperline)
 
   return(as.integer(lineperrow*nrow*nlay))
 }
@@ -34,6 +38,8 @@ expected.lines.RIARRAY <- function(header.txt, ncol, nrow, nlay = 1L){
 #' @param nlay
 #'
 #' @return
+#'
+#' @importFrom stringr str_c
 #'
 #' @examples
 interpret.RIARRAY <- function(txt.lines, header = T, ncol, nlay = 1L){
@@ -82,4 +88,50 @@ interpret.RIARRAY <- function(txt.lines, header = T, ncol, nlay = 1L){
   }
 
   return(vals)
+}
+
+#' Skip over unneed binary arrays
+#'
+#' @param con
+#' file connection
+#' @param nvec
+#' integer \code{[]};
+#' numbers of entries
+#' @param bnvec
+#' integer \code{[]};
+#' numbers of bytes per entry
+#'
+#' @return
+#' \code{NULL}
+#'
+skiparr <- function(con, nvec, bnvec){
+  Map(readBin, n = nvec, size = bnvec, MoreArgs = list(con = con, what = "integer"))
+  invisible()
+}
+
+#' Flip an array
+#'
+#' reflects an array in a given dimension
+#'
+#' @param arr
+#' array
+#' @param by
+#' integer \code{[1]}
+#'
+#' @return
+#' array
+#'
+#' @examples
+#' mtx <- matrix(1:4, 2, 2)
+#' mtx
+#' flip(mtx, 1L)
+#' flip(mtx, 2L)
+#'
+flip <- function(arr, by){
+  if(is.vector(arr)) return(rev(arr))
+  dims <- dim(arr)
+  args <- c(list(arr), rep(list(bquote()), by - 1L),
+            list(dims[by]:1), rep(list(bquote()), length(dims) - by),
+            drop = FALSE)
+  do.call(`[`, args)
 }

@@ -93,6 +93,7 @@ read.DIS <- function(file){
 #' @return \code{NULL}
 #'
 #' @export
+#' @import data.table
 #'
 #' @examples
 #'

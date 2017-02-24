@@ -75,6 +75,7 @@
 #'
 #' Prints a summary of the final NetCDF data set using print.nc.
 #'
+#' @import RNetCDF
 #' @export
 #'
 #' @examples
@@ -464,9 +465,15 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
 #' @param updating
 #'
 #' @return
+#' \code{NULL}
+#'
+#' @import RNetCDF
 #' @export
 #'
+#' prints summary of NetCDF file created
+#'
 #' @examples
+#'
 MT3DMS.nc <- function(dir, mtrt, ntts = Inf, gw.nc, file = paste0(mtrt, ".nc"),
                       Nspecies = 10L, species.names = as.character(1:Nspecies),
                       files = cbind(mob = paste0(mtrt, 1:Nspecies, ".ucn"),
