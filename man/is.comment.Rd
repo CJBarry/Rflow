@@ -23,10 +23,10 @@ logical \code{[1]}
 Check if line of text is a comment
 }
 \examples{
-is.comment(" #  ")
-is.comment(" #  ", allow.ws = TRUE)
-is.comment("! test", "!")
-is.comment("code", "")
+Rflow:::is.comment(" #  ")
+Rflow:::is.comment(" #  ", allow.ws = TRUE)
+Rflow:::is.comment("! test", "!")
+Rflow:::is.comment("code", "")
 
 }
 

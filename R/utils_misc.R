@@ -17,13 +17,13 @@
 #' logical \code{[1]}
 #'
 #' @examples
-#' is.comment(" #  ")
-#' is.comment(" #  ", allow.ws = TRUE)
-#' is.comment("! test", "!")
-#' is.comment("code", "")
+#' Rflow:::is.comment(" #  ")
+#' Rflow:::is.comment(" #  ", allow.ws = TRUE)
+#' Rflow:::is.comment("! test", "!")
+#' Rflow:::is.comment("code", "")
 #'
 is.comment <- function(line, comm.char = "#", allow.ws = FALSE){
-  if(comment.char == "") return(FALSE)
+  if(comm.char == "") return(FALSE)
   if(allow.ws) line = trimws(line)
   substring(line, 1, nchar(comm.char)) %in% comm.char
 }
@@ -41,10 +41,10 @@ is.comment <- function(line, comm.char = "#", allow.ws = FALSE){
 #'
 #' @examples
 #' # sep = " " insists on exactly one space between numbers
-#' numeric.extract("1 2  3", " ")
+#' Rflow:::numeric.extract("1 2  3", " ")
 #'
 #' # sep = "" allows any amount of white space between numbers
-#' numeric.extract("1 2  3", "")
+#' Rflow:::numeric.extract("1 2  3", "")
 #'
 numeric.extract <- function(x, sep = " "){
   scan(text = trimws(x), sep = sep, what = numeric(), quiet = T)
@@ -62,8 +62,22 @@ numeric.extract <- function(x, sep = " "){
 #' @importFrom stringr str_to_title
 #'
 #' @examples
-#' nicearname(" FLOW RIGHT FACE") # "FlowRightFace"
+#' Rflow:::nicearname(" FLOW RIGHT FACE") # "FlowRightFace"
 #'
 nicearname <- function(arty){
   str_replace_all(str_to_title(arty), " ", "")
+}
+
+#' Enforce recycling to a target length
+#'
+#' @param vec
+#' @param target.length
+#'
+#' @return
+#' vector \code{[target.length]}
+#'
+expand.vec <- function(vec, target.length){
+  if(identical(length(vec), 1L)){
+    return(rep(vec, target.length))
+  }else return(vec)
 }

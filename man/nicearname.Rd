@@ -16,7 +16,7 @@ character string
 Format array headers from MODFLOW
 }
 \examples{
-nicearname(" FLOW RIGHT FACE") # "FlowRightFace"
+Rflow:::nicearname(" FLOW RIGHT FACE") # "FlowRightFace"
 
 }
 

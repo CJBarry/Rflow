@@ -29,6 +29,11 @@
 #' @export
 #'
 #' @examples
+#' fnm <- system.file("rflow_mf_demo.dis", package = "Rflow")
+#'
+#' dis <- read.DIS(fnm)
+#' class(dis)
+#' str(dis)
 #'
 read.DIS <- function(file){
   txt <- readLines(file)
@@ -92,10 +97,21 @@ read.DIS <- function(file){
 #'
 #' @return \code{NULL}
 #'
-#' @export
 #' @import data.table
+#' @export
 #'
 #' @examples
+#' # read DIS package
+#' fnm <- system.file("rflow_mf_demo.dis", package = "Rflow")
+#' dis <- read.DIS(fnm)
+#'
+#' # meaningful modification e.g. add a stress period
+#' dis$extent["NPER"] <- dis$extent["NPER"] + 1L
+#' dis$sps <- rbind(dis$sps,
+#'                  list(1000, 10L, 1.2, TRUE))
+#'
+#' # write modified dis package to file
+#' write.DIS(dis, "RFLOW_EXAMPLE.dis", "example: added stress period")
 #'
 write.DIS <- function(DIS, filename, title){
   con <- file(filename, "wt")
@@ -128,8 +144,15 @@ write.DIS <- function(DIS, filename, title){
   }, con)
 
   # elevations
-  writeLines(RIARRAY.splitlayers(DIS$extent["NLAY"] + 1L, arr = DIS$elev, flag.no = 29L),
-             con)
+  if(is.array(DIS$elev)){
+    writeLines(RIARRAY.splitlayers(DIS$extent["NLAY"] + 1L,
+                                   arr = DIS$elev, flag.no = 29L),
+               con)
+  }else{
+    writeLines(RIARRAY.splitlayers(DIS$extent["NLAY"] + 1L,
+                                   CNSTNT = DIS$elev, flag.no = 29L),
+               con)
+  }
 
   # stress periods
   setDT(DIS$sps)

@@ -24,6 +24,17 @@ Writes information from a DIS.MFpackage list object to a MODFLOW-readable
  DIS package file.
 }
 \examples{
+# read DIS package
+fnm <- system.file("rflow_mf_demo.dis", package = "Rflow")
+dis <- read.DIS(fnm)
+
+# meaningful modification e.g. add a stress period
+dis$extent["NPER"] <- dis$extent["NPER"] + 1L
+dis$sps <- rbind(dis$sps,
+                 list(1000, 10L, 1.2, TRUE))
+
+# write modified dis package to file
+write.DIS(dis, "RFLOW_EXAMPLE.dis", "example: added stress period")
 
 }
 

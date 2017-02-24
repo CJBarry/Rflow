@@ -23,7 +23,7 @@ default file name, minus extensions, for the data sets}
 \item{updating}{}
 }
 \value{
-
+\code{NULL}
 }
 \description{
 MT3DMS results to NetCDF

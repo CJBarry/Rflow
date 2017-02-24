@@ -20,8 +20,8 @@ reflects an array in a given dimension
 \examples{
 mtx <- matrix(1:4, 2, 2)
 mtx
-flip(mtx, 1L)
-flip(mtx, 2L)
+Rflow:::flip(mtx, 1L)
+Rflow:::flip(mtx, 2L)
 
 }
 

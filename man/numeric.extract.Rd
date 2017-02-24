@@ -20,10 +20,10 @@ Extract numerical values from a string
 }
 \examples{
 # sep = " " insists on exactly one space between numbers
-numeric.extract("1 2  3", " ")
+Rflow:::numeric.extract("1 2  3", " ")
 
 # sep = "" allows any amount of white space between numbers
-numeric.extract("1 2  3", "")
+Rflow:::numeric.extract("1 2  3", "")
 
 }
 
