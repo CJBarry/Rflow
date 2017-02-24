@@ -1,0 +1,16 @@
+GLOBAL 6 dmocf.glo
+LIST 7 dmocf.lst
+BAS6  1 dmocf.bas
+DIS  29 dmocf.dis
+LPF 11 dmocf.lpf
+ZONE 15 dmocf.zone
+WEL 12 dmocf.wel
+RIV 14 dmocf.riv
+RCH 18 dmocf.rch
+CHD 40 dmocf.chd
+OC  22 dmocf.oc
+PCG 19 dmocf.pcg
+DATA(BINARY) 50 dmocf.cbb
+DATA(BINARY) 30 dmocf.hds
+DATA(BINARY) 31 dmocf.ddn
+LMT6 33 dmocf.lmt

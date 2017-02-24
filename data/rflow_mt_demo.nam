@@ -1,0 +1,10 @@
+LIST  0  dmoct.out
+BTN   0  dmoct.btn
+ADV   0  dmoct.adv
+DSP   0  dmoct.dsp
+SSM   0  dmoct.ssm
+RCT   0  dmoct.rct
+GCG   0  dmoct.gcg
+FTL   0  dmocf.ftl
+DATA(BINARY) 201 dmoct1.ucn
+DATA 401 dmoct1.obs
