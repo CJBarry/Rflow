@@ -10,17 +10,17 @@
 #' variable to plot
 #' @param gccs
 #' numeric \code{[NCOL + 1]};
-#' column divider $x$ co-ordinates, in ascending order
+#' column divider \eqn{x} co-ordinates, in ascending order
 #' @param grcs
 #' numeric \code{[NROW + 1]};
-#' row divider $y$ co-ordinates, in ascending order
+#' row divider \eqn{y} co-ordinates, in ascending order
 #' @param zlim
 #' numeric \code{[2]} or character string;
 #' min. and max. values to plot; alternatively use \code{breaks} argument
 #'  as in \code{graphics::image}; additionally, three character string
 #'  options are given: \code{"auto"} for automatic range calculation
-#'  (pretty), \code{"sym"} for automatic range that is symmetric about $0$
-#'  and "angle" for a range between $-pi$ and $pi$
+#'  (pretty), \code{"sym"} for automatic range that is symmetric about \eqn{0}
+#'  and "angle" for a range between \eqn{-pi} and \eqn{pi}
 #' @param col
 #' character \code{[]};
 #' colours
@@ -91,7 +91,7 @@ MFimage <- function(mtx, gccs, grcs, zlim = "auto",
 #' Plot MODFLOW variable matrix from NetCDF
 #'
 #' @param nc
-#' NetCDF;
+#' NetCDF object;
 #' an open connection to a MODFLOW/ MT3DMS data set
 #' @param variable
 #' character string;
@@ -99,11 +99,11 @@ MFimage <- function(mtx, gccs, grcs, zlim = "auto",
 #' @param start
 #' integer \code{[4]};
 #' index in each dimension at which to start reading (see
-#'  \code{\link{var.get.nc, pkg = RNetCDF}}); NA implies start
+#'  \code{\link{var.get.nc, pkg = RNetCDF}}); \code{NA} implies start
 #' @param count
 #' integer \code{[4]};
 #' numbers of indices to read in each dimension (see
-#'  \code{\link{var.get.nc, pkg = RNetCDF}}); NA implies to end
+#'  \code{\link{var.get.nc, pkg = RNetCDF}}); \code{NA} implies to end
 #' @inheritParams MFimage
 #' @param zlim
 #' @param col
@@ -124,7 +124,7 @@ MFimage <- function(mtx, gccs, grcs, zlim = "auto",
 #'
 #' # plot the flux from river (blue is negative)
 #' MFncimage(mfdata, "RiverLeakage",
-#'           c(NA, NA, 1L, 1L),
+#'           c(NA, NA, 1L, 10L),
 #'           c(NA, NA, 1L, 1L),
 #'           "sym", show.range = TRUE)
 #'

@@ -12,17 +12,17 @@ MFimage(mtx, gccs, grcs, zlim = "auto", col = colorRampPalette(c("blue",
 variable to plot}
 
 \item{gccs}{numeric \code{[NCOL + 1]};
-column divider $x$ co-ordinates, in ascending order}
+column divider \eqn{x} co-ordinates, in ascending order}
 
 \item{grcs}{numeric \code{[NROW + 1]};
-row divider $y$ co-ordinates, in ascending order}
+row divider \eqn{y} co-ordinates, in ascending order}
 
 \item{zlim}{numeric \code{[2]} or character string;
 min. and max. values to plot; alternatively use \code{breaks} argument
  as in \code{graphics::image}; additionally, three character string
  options are given: \code{"auto"} for automatic range calculation
- (pretty), \code{"sym"} for automatic range that is symmetric about $0$
- and "angle" for a range between $-pi$ and $pi$}
+ (pretty), \code{"sym"} for automatic range that is symmetric about \eqn{0}
+ and "angle" for a range between \eqn{-pi} and \eqn{pi}}
 
 \item{col}{character \code{[]};
 colours}

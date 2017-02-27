@@ -11,38 +11,38 @@
 #' character string;
 #' WEL package file
 #' @param nSP
-#' integer \code{[1]};
-#' number of stress periods
-#' @param dis
-#' DIS.MFpackage object;
-#' if \code{nSP} is not given, it can be read from \code{nrow(dis$sps)},
-#'  but not necessary if \code{nSP} is given
+#' integer \code{[1]} or DIS.MFpackage object;
+#' number of stress periods or corresponding DIS package from which this
+#'  can be read
 #' @param MF2k
 #' logical \code{[1]};
 #' is this a MODFLOW 2000+ WEL package?
 #'
 #' @return
-#' list \code{[2]} of class WEL.MFpackage, with elements:
-#' \code{$header}:
-#'   \code{$MXACTW} the maximum number of active wells in a stress period
-#'   \code{$IWELCB} unit number to which well flux array is saved (if > 0)
-#' \code{$spheaders}:
-#' headers for each stress period, a data.frame with columns:
-#'   \code{$ITMP} (int): number of active wells in stress period, or (if < 0)
-#'   indicates to read from previous stress period
-#'   \code{$NP} (int): number of parameters to read for this stress period
-#'   (always 0 if MF2k = FALSE)
+#' list \code{[2]} of class WEL.MFpackage, with elements:\cr
+#' \code{$header}:\cr
+#'   \code{..$MXACTW} the maximum number of active wells in a stress period\cr
+#'   \code{..$IWELCB} unit number to which well flux array is saved (if
+#'    \eqn{> 0})\cr
+#' \code{$spheaders}:\cr
+#' headers for each stress period, a data.frame with columns:\cr
+#'   \code{..$ITMP} (int): number of active wells in stress period, or (if
+#'    \eqn{< 0})\cr
+#'   indicates to read from previous stress period\cr
+#'   \code{..$NP} (int): number of parameters to read for this stress period
+#'    (always 0 if \code{MF2k = FALSE})\cr
 #' \code{$read}: logical vector of length nSP indicating for which stress periods
-#' well information is to be read
-#' \code{$data}:
-#' a data.table with the following columns
-#'   \code{$sp} (int): stress period (key)
-#'   \code{$C} (int): column
-#'   \code{$R} (int): row
-#'   \code{$L} (int): layer
-#'   \code{$Q} (num): flux (negative indicates abstraction, positive indicates
-#'   injection)
+#'  well information is to be read\cr
+#' \code{$data}:\cr
+#' a data.table with the following columns\cr
+#'   \code{..$sp} (int): stress period (key)\cr
+#'   \code{..$C} (int): column\cr
+#'   \code{..$R} (int): row\cr
+#'   \code{..$L} (int): layer\cr
+#'   \code{..$Q} (num): flux (negative indicates abstraction, positive indicates
+#'    injection)\cr
 #'
+#' @import data.table
 #' @export
 #'
 #' @examples
@@ -52,19 +52,20 @@
 #' # get model information from DIS package file
 #' dis <- read.DIS(fnms[1L])
 #'
-#' wel <- read.WEL(fnms[2L], dis = dis)
+#' wel <- read.WEL(fnms[2L], dis)
 #' # or, if you already know how many stress periods there are
 #' wel <- read.WEL(fnms[2L], 15L)
 #'
 #' class(wel)
 #' str(wel)
 #'
-read.WEL <- function(filename, nSP, dis, MF2k = TRUE){
-  # get number of stress periods if not given already
-  if(missing(nSP)){
-    stopifnot(!missing(dis))
-    nSP <- nrow(dis$sps)
-  }
+read.WEL <- function(filename, nSP, MF2k = TRUE){
+  # get number of stress periods
+  nSP <- switch(class(nSP),
+                integer = nSP,
+                numeric = as.integer(nSP),
+                DIS.MFpackage = nrow(nSP$sps),
+                stop("number of stress periods not given"))
 
   if(MF2k){
     con <- file(filename, "rt")
@@ -127,13 +128,13 @@ read.WEL <- function(filename, nSP, dis, MF2k = TRUE){
 
 #' Write a well (WEL) package file
 #'
-#' Writes information from a DIS.MFpackage list object to a MODFLOW-readable
+#' Writes information from a WEL.MFpackage list object to a MODFLOW-readable
 #'  WEL package file.
 #'
 #' @param WEL
 #' object of class WEL.MFpackage
 #' @param filename
-#' character;
+#' character string;
 #' file to which package information is to be written
 #' @inheritParams write.BAS
 #' @param title

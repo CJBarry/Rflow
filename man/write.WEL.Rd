@@ -9,7 +9,7 @@ write.WEL(WEL, filename, title = "", MF2k = TRUE)
 \arguments{
 \item{WEL}{object of class WEL.MFpackage}
 
-\item{filename}{character;
+\item{filename}{character string;
 file to which package information is to be written}
 
 \item{title}{character string;
@@ -19,7 +19,7 @@ optional title to prefix to the file, for your reference (not used if MF2k =
 \item{MF2k}{}
 }
 \description{
-Writes information from a DIS.MFpackage list object to a MODFLOW-readable
+Writes information from a WEL.MFpackage list object to a MODFLOW-readable
  WEL package file.
 }
 \examples{
