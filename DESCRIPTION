@@ -22,6 +22,7 @@ Imports:
     data.table,
     plyr,
     RNetCDF,
-    stringr
+    stringr,
+    stats
 RoxygenNote: 6.0.1
 Suggests: testthat

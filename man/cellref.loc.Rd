@@ -18,7 +18,9 @@ grid line co-ordinates in relevant dimension.  Must have length one more
  of the model grid.}
 
 \item{rev}{logical \code{[1]};
-whether the grid lines are numbered in reverse order of co-ordinate}
+whether the grid lines are numbered in reverse order of co-ordinate.
+ Generally FALSE for column references and TRUE for row references.  See
+ the examples for more guidance on usage with MODFLOW grids.}
 }
 \value{
 An integer vector of the same length as x, showing which grid cell
@@ -26,11 +28,11 @@ reference the values of x are found in.  NA shows that values of x are
 outside the grid boundaries.
 
 Values of x that are exactly on the grid lines are assigned to the
-smaller reference (or greater if rev = TRUE).
+smaller reference (or greater if rev = TRUE, as a side effect of rev).
 }
 \description{
 Find column, row or other discrete divider reference in a grid, from its
- co-ordinate.
+ co-ordinate.  May also be used in the time dimension.
 }
 \examples{
 # some of these values may be outside the grid boundary
