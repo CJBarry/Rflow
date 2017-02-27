@@ -24,6 +24,8 @@ default file name, minus extensions, for the data sets}
 }
 \value{
 \code{NULL}
+
+prints summary of NetCDF file created
 }
 \description{
 MT3DMS results to NetCDF

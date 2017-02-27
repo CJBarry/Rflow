@@ -468,10 +468,10 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
 #' @return
 #' \code{NULL}
 #'
+#' prints summary of NetCDF file created
+#'
 #' @import RNetCDF
 #' @export
-#'
-#' prints summary of NetCDF file created
 #'
 #' @examples
 #'
