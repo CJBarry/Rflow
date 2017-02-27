@@ -88,12 +88,13 @@ read.DIS <- function(file){
 #'  DIS package file.
 #'
 #' @param DIS object of class DIS.MFpackage, as would be read by
-#'   \code{\link{read.DIS}}
+#'  \code{\link{read.DIS}}
 #' @param filename
 #' character string;
 #' file name to write to, ideally ending in \code{".dis"}
-#' @param title character string optional title to put at the start of the
-#'   package file
+#' @param title
+#' character string;
+#' optional title to put at the start of the package file
 #'
 #' @return \code{NULL}
 #'

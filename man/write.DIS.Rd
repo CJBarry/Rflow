@@ -13,8 +13,8 @@ write.DIS(DIS, filename, title)
 \item{filename}{character string;
 file name to write to, ideally ending in \code{".dis"}}
 
-\item{title}{character string optional title to put at the start of the
-package file}
+\item{title}{character string;
+optional title to put at the start of the package file}
 }
 \value{
 \code{NULL}

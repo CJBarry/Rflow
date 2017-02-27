@@ -108,6 +108,7 @@ MFimage <- function(mtx, gccs, grcs, zlim = "auto",
 #' @param zlim
 #' @param col
 #' @param show.range
+#' @inheritDotParams MFimage
 #' @param ...
 #'
 #' @return NULL
@@ -117,6 +118,7 @@ MFimage <- function(mtx, gccs, grcs, zlim = "auto",
 #'
 #' @examples
 #'
+#' library("RNetCDF")
 #' fnm <- system.file("rflow_mf_demo.nc", package = "Rflow")
 #' mfdata <- open.nc(fnm)
 #'
