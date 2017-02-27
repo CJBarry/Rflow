@@ -36,8 +36,9 @@ File names for DIS, BAS, LPF and BCF package files.  The latter three
 File name for head array.}
 
 \item{CBB, CBW, CRC, CRV, CBD, CBG, CS1}{character string;
-File names for budget files, cell-by-cell and those relating to specific
- boundary conditions.  If a file doesn't exist it is simply ignored.}
+File names for budget files, cell-by-cell flows and those relating to
+ specific boundary conditions.  If a file doesn't exist it is simply
+ ignored.}
 
 \item{HNOFLO}{numeric \code{[1]};
 value to interpret as inactive cells in head array, automatically gleaned
@@ -81,8 +82,8 @@ time steps at which to split into multiple NetCDFs; the end time step of the
 \item{ch}{logical \code{[1]};
 whether to save the constant head flux (in a simulation with no CHs, there
  will still be arrays for constant head in the budget files, which waste space
- as all the elements are 0; it is not possible to know \textit{a priori}
- whether the CH array is needed, so the user should say if s/he knows)}
+ as all the elements are 0; it is not possible to know \emph{a priori} whether
+ the CH array is needed, so the user should say if s/he knows)}
 }
 \value{
 \code{NULL}

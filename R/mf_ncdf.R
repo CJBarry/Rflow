@@ -22,8 +22,9 @@
 #' File name for head array.
 #' @param CBB,CBW,CRC,CRV,CBD,CBG,CS1
 #' character string;
-#' File names for budget files, cell-by-cell and those relating to specific
-#'  boundary conditions.  If a file doesn't exist it is simply ignored.
+#' File names for budget files, cell-by-cell flows and those relating to
+#'  specific boundary conditions.  If a file doesn't exist it is simply
+#'  ignored.
 #' @param HNOFLO
 #' numeric \code{[1]};
 #' value to interpret as inactive cells in head array, automatically gleaned
@@ -67,14 +68,15 @@
 #' logical \code{[1]};
 #' whether to save the constant head flux (in a simulation with no CHs, there
 #'  will still be arrays for constant head in the budget files, which waste space
-#'  as all the elements are 0; it is not possible to know \textit{a priori}
-#'  whether the CH array is needed, so the user should say if s/he knows)
+#'  as all the elements are 0; it is not possible to know \emph{a priori} whether
+#'  the CH array is needed, so the user should say if s/he knows)
 #'
 #' @return
 #' \code{NULL}
 #'
 #' Prints a summary of the final NetCDF data set using print.nc.
 #'
+#' @import RNetCDF
 #' @export
 #'
 #' @examples
@@ -464,9 +466,15 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
 #' @param updating
 #'
 #' @return
+#' \code{NULL}
+#'
+#' @import RNetCDF
 #' @export
 #'
+#' prints summary of NetCDF file created
+#'
 #' @examples
+#'
 MT3DMS.nc <- function(dir, mtrt, ntts = Inf, gw.nc, file = paste0(mtrt, ".nc"),
                       Nspecies = 10L, species.names = as.character(1:Nspecies),
                       files = cbind(mob = paste0(mtrt, 1:Nspecies, ".ucn"),

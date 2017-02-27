@@ -32,5 +32,10 @@ Reads information from a MODFLOW-2000 DIS package file.  The DIS
  the layer types.
 }
 \examples{
+fnm <- system.file("rflow_mf_demo.dis", package = "Rflow")
+
+dis <- read.DIS(fnm)
+class(dis)
+str(dis)
 
 }

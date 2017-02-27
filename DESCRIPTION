@@ -15,6 +15,13 @@ Description: Designed for the popular USGS MODFLOW Finite Difference
     feature added, then e-mail me.
 License: MIT
 LazyData: TRUE
-Depends: R (>= 3.0.0), data.table, plyr, RNetCDF, stringr
-Imports: graphics
+Depends:
+    R (>= 3.0.0)
+Imports:
+    graphics,
+    data.table,
+    plyr,
+    RNetCDF,
+    stringr
 RoxygenNote: 6.0.1
+Suggests: testthat

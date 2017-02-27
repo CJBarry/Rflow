@@ -121,6 +121,7 @@ read.BAS <- function(filename, dis){
 #'
 #' @return \code{NULL}
 #'
+#' @import data.table
 #' @export
 #'
 #' @examples

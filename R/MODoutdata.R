@@ -44,6 +44,9 @@
 #'   \code{$time}: num \code{[NTS]}; time at end of each time step,
 #'    relative to model start
 #'
+#' @import plyr
+#' @import abind
+#' @import stringr
 #' @export
 #'
 #' @examples
@@ -139,7 +142,7 @@ readHDS.arr <- function(file, conc = FALSE, time.only = FALSE,
   if(!time.only) hds <- hds[,, keep, drop = F]
 
   #find unique tssp and array types
-  untssp <- unique.matrix(tssp, MARGIN = 1) #this is a matrix still; the function does not "drop"
+  untssp <- unique.matrix(tssp, MARGIN = 1L) #this is a matrix still; the function does not "drop"
   unts <- 1:nrow(untssp) #unique timestep numbers
   ts <- vapply(1:nrow(tssp), function(r){
     unts[Reduce(`&`, lapply(1:ifelse(conc, 3, 2), function(c) untssp[, c] == tssp[r, c]))]
@@ -208,6 +211,9 @@ readHDS.arr <- function(file, conc = FALSE, time.only = FALSE,
 #'  fifth dimensions are given appropriately formatted dimnames, such that
 #'  specific output types may be subsetted by name.
 #'
+#' @import plyr
+#' @import abind
+#' @import stringr
 #' @export
 #'
 #' @examples
@@ -397,6 +403,9 @@ readCBB.arr <- function(file, flux.bn = 4L, show.help = TRUE,
 #'    relative to model start\cr
 #' or just the time values
 #'
+#' @import plyr
+#' @import abind
+#' @import stringr
 #' @export
 #'
 #' @examples
