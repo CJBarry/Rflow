@@ -77,7 +77,7 @@ read.WEL <- function(filename, nSP, MF2k = TRUE){
     skip <- 0L
     while({
       ln1 <- readLines(con, 1L)
-      is.comment(ln1, "#") || grepl("PARAMETER", ln1, ignore.case = TRUE)
+      Rflow:::is.comment(ln1, "#") || grepl("PARAMETER", ln1, ignore.case = TRUE)
     }) skip <- skip + 1L
 
     # start over and skip
@@ -153,6 +153,7 @@ read.WEL <- function(filename, nSP, MF2k = TRUE){
 #'
 #' # meaningful modification e.g. add a stress period with no abstraction
 #' wel$spheader <- rbind(wel$spheader, list(0L, 0L))
+#' wel$read <- c(wel$read, TRUE)
 #'
 #' # write modified wel package to file
 #' write.WEL(wel, "RFLOW_EXAMPLE.wel", "example: added stress period")
@@ -183,7 +184,7 @@ write.WEL <- function(WEL, filename, title = "", MF2k = TRUE){
 
   for(spn in 1:nSP){
     if(WEL$read[spn]){
-      WEL$data[sp == spn, if(!.N){
+      WEL$data[sp == spn & Q != 0, if(!.N){
         writeLines("         0         0", con)
       }else{
         writeLines(c(formatC(.N, digits = 0L, width = 10L, format = "d"),
@@ -205,7 +206,11 @@ write.WEL <- function(WEL, filename, title = "", MF2k = TRUE){
                                 format = ff.format[col])
                       }, character(.N))
 
-        writeLines(apply(ffs, 1L, paste, collapse = ""), con)
+        if(is.matrix(ffs)){
+          writeLines(apply(ffs, 1L, paste, collapse = ""), con)
+        }else{
+          writeLines(paste(ffs, collapse = ""), con)
+        }
       }]
     }else{
       writeLines("        -1         0", con)

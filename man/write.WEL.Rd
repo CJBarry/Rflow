@@ -29,6 +29,7 @@ wel <- read.WEL(fnm, 15L)
 
 # meaningful modification e.g. add a stress period with no abstraction
 wel$spheader <- rbind(wel$spheader, list(0L, 0L))
+wel$read <- c(wel$read, TRUE)
 
 # write modified wel package to file
 write.WEL(wel, "RFLOW_EXAMPLE.wel", "example: added stress period")
