@@ -59,7 +59,7 @@ MFimage <- function(mtx, gccs, grcs, zlim = "auto",
   # case in which matrix is only NA - make blank plot
   if(all(is.na(mtx))){
     cat("all NAs\n")
-    image(gccs, grcs, mtx, zlim = 0:1)
+    image(gccs, grcs, mtx, zlim = 0:1, ...)
     return(invisible())
   }
 
