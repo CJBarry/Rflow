@@ -15,3 +15,4 @@ interpret.RIARRAY(txt.lines, header = T, ncol, nlay = 1L)
 \description{
 Convert lines of text to a numeric array
 }
+
