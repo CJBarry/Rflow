@@ -26,4 +26,3 @@ Rflow:::numeric.extract("1 2  3", " ")
 Rflow:::numeric.extract("1 2  3", "")
 
 }
-

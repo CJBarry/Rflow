@@ -43,4 +43,3 @@ either \code{"all"} or a set of <stress period _ time step>s to read}
 \description{
 Read Cell-By-Cell Budget Array
 }
-
