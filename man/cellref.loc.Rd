@@ -74,4 +74,3 @@ mftime <- c(0, var.get.nc(mfdata, "time")) +
 (ts <- cellref.loc(1500, mftime))
 
 }
-
