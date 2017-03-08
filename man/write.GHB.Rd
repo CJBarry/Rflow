@@ -28,4 +28,3 @@ Writes information from a GHB.MFpackage list object to a MODFLOW-readable
 \examples{
 
 }
-

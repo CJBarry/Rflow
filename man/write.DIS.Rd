@@ -37,4 +37,3 @@ dis$sps <- rbind(dis$sps,
 write.DIS(dis, "RFLOW_EXAMPLE.dis", "example: added stress period")
 
 }
-
