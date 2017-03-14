@@ -2,6 +2,7 @@ Package: Rflow
 Type: Package
 Title: Tools for analysing and writing input and output files for USGS MODFLOW
 Version: 0.1.0
+Date: 2017-03-14
 Author: Christopher Barry
 Maintainer: <cjbarry.hydrogeo@gmail.com>
 Description: Designed for the popular USGS MODFLOW Finite Difference
