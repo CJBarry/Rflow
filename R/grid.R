@@ -66,10 +66,7 @@
 #' (L <- cellref.loc(25, rev(ldivs.cr), TRUE))
 #' #
 #' # - example time step reference
-#' #  -- remember to prefix the start time
-#' mftime <- c(0, var.get.nc(mfdata, "time")) +
-#'             att.get.nc(mfdata, "NC_GLOBAL", "start_time")
-#' (ts <- cellref.loc(1500, mftime))
+#' (ts <- cellref.loc(1500, mftstime(mfdata)))
 #'
 cellref.loc <- function(x, gcs, rev = FALSE){
   refs <- as.integer(if(rev){
@@ -131,6 +128,10 @@ cellref.loc <- function(x, gcs, rev = FALSE){
 #' gccs(mfdata, TRUE)
 #' grcs(mfdata, TRUE)
 #'
+#' # - if t0 is given with a NetCDF, a warning is given to avoid
+#' #    ambiguity
+#' \dontrun{gccs(mfdata, TRUE, 1000)}
+#'
 NULL
 
 #' @rdname gcs
@@ -191,6 +192,123 @@ grcs <- function(data, absolute = FALSE, y0){
            }else{
              c(0, cumsum(data$DELC)) + if(absolute) y0 else 0
            }
+         },
+         stop("data must be a DIS.MFpackage or a NetCDF"))
+}
+
+#' @name mftime
+#' @rdname mftime
+#'
+#' @title Time Step and Stress Period timings
+#'
+#' @description
+#' Get the time values of the time step or stress period divides from a DIS
+#'  package or a MODFLOW NetCDF data set.  Stress periods define periods of
+#'  different boundary condition stresses.  Stress periods are divided into
+#'  multiple time steps in order to describe the transient response
+#'  accurately.
+#'
+#' @param data
+#' DIS.MFpackage or NetCDF object;
+#' mfsptime does not yet support NetCDF
+#' @param absolute
+#' logical \code{[1]};
+#' \code{TRUE} if the absolute time values should be returned.  The default
+#'  is \code{FALSE}.
+#' @param t0
+#' numeric \code{[1]};
+#' If \code{data} is a DIS package and \code{absolute = TRUE}, then the
+#'  value of \eqn{t} at the start of the model must be given.  Not needed
+#'  with NetCDFs because this information is stored in the NetCDF output
+#'  generated from \code{Rflow}.
+#'
+#' @return
+#' \code{mftstime}:\cr
+#' numeric \code{[NTS + 1]}, where \code{NTS} is the number of time steps;
+#' the time values at the time step transitions, including the start and end
+#'  times of the model
+#'
+#' \code{mfsptime}:\cr
+#' numeric \code{[NPER + 1]}, where \code{NPER} is the number of stress
+#' periods; the time values at the stress period transitions, including the
+#'  start and end times of the model
+#'
+#' @examples
+#' # using DIS.MFpackage
+#' dis <- read.DIS(system.file("rflow_mf_demo.dis",
+#'                             package = "Rflow"))
+#'
+#' mftstime(dis)
+#' mfsptime(dis)
+#'
+#' # - with a made-up start time for demonstration purposes
+#' mftstime(dis, TRUE, 1000)
+#' mfsptime(dis, TRUE, 1000)
+#'
+#' # using a NetCDF
+#' mfdata <- RNetCDF::open.nc({
+#'   system.file("rflow_mf_demo.nc", package = "Rflow")
+#' })
+#'
+#' mftstime(mfdata)
+#'
+#' # - the start time is in fact 0 for the demo, so this will show no
+#' #    difference
+#' mftstime(mfdata, TRUE)
+#'
+#' # - if t0 is given with a NetCDF, a warning is given to avoid
+#' #    ambiguity
+#' \dontrun{mftstime(mfdata, TRUE, 1000)}
+#'
+NULL
+
+#' @rdname mftime
+#' @importFrom RNetCDF var.get.nc
+#' @importFrom RNetCDF att.get.nc
+#' @export
+mftstime <- function(data, absolute = FALSE, t0){
+  switch(class(data),
+         NetCDF = {
+           if(absolute && !missing(t0)) warning({
+             "Rflow::mftstime: with NetCDF origin t is read from the data set, so t0 is ignored"
+           })
+
+           c(0, var.get.nc(data, "time")) + if(absolute){
+             att.get.nc(data, "NC_GLOBAL", "start_time")
+           }else 0
+         },
+         DIS.MFpackage = {
+           if(absolute && missing(t0)) stop({
+             "Rflow::mftstime: with a DIS.MFpackage, t0 must be given for absolute co-ordinates"
+           })
+
+           with(data$sps, {
+             c(0, Map(function(Dt, N, m, t.end, sp){
+               dt1 <- Dt/sum(m^(0:(N - 1L)))
+               ts <- cumsum(dt1*m^(0:(N - 1L))) + t.end - Dt
+               names(ts) <- paste(sp, 1:N, sep = "_")
+               ts
+             }, PERLEN, NSTP, TSMULT, cumsum(PERLEN), 1:length(PERLEN)),
+             recursive = TRUE) + if(absolute) t0 else 0})
+         },
+         stop("data must be a DIS.MFpackage or a NetCDF"))
+}
+
+#' @rdname mftime
+#' @importFrom RNetCDF var.get.nc
+#' @importFrom RNetCDF att.get.nc
+#' @export
+mfsptime <- function(data, absolute = FALSE, t0){
+  switch(class(data),
+         NetCDF = {
+           stop("Rflow::mfsptime: mfsptime does not yet support RNetCDF input")
+         },
+         DIS.MFpackage = {
+           if(absolute && missing(t0)) stop({
+             "Rflow::mfsptime: with a DIS.MFpackage, t0 must be given for absolute co-ordinates"
+           })
+
+           cumsum(c(if(absolute) t0 else 0, data$sps$PERLEN))
          },
          stop("data must be a DIS.MFpackage or a NetCDF"))
 }

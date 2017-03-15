@@ -32,3 +32,4 @@ Reads information from a MODFLOW-2000 HFB6 package file.
  specified horizontally adjacent cells and is often used to represent
  artificial confining walls or geological faults.
 }
+

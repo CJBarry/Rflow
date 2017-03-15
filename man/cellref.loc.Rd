@@ -68,9 +68,7 @@ ldivs.cr <- c(var.get.nc(mfdata, "elev", c(C, R, NA), c(1L, 1L, NA)))
 (L <- cellref.loc(25, rev(ldivs.cr), TRUE))
 #
 # - example time step reference
-#  -- remember to prefix the start time
-mftime <- c(0, var.get.nc(mfdata, "time")) +
-            att.get.nc(mfdata, "NC_GLOBAL", "start_time")
-(ts <- cellref.loc(1500, mftime))
+(ts <- cellref.loc(1500, mftstime(mfdata)))
 
 }
+

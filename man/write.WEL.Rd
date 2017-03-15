@@ -35,3 +35,4 @@ wel$read <- c(wel$read, TRUE)
 write.WEL(wel, "RFLOW_EXAMPLE.wel", "example: added stress period")
 
 }
+
