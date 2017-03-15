@@ -32,7 +32,8 @@
 #'    current stress period\cr
 #'   \code{..$IRDFLG} (int): if > 0, don't print input data for this sp\cr
 #'   \code{..$IPTFLG} (int): if > 0, don't print results for this sp\cr
-#' \code{$data}\cr
+#' \code{$data} data.table:\cr
+#'   \code{..$sp} (int); stress period (the key)\cr
 #'   \code{..$L} (int): layer\cr
 #'   \code{..$R} (int): row\cr
 #'   \code{..$C} (int): column\cr
@@ -160,6 +161,8 @@ read.STR <- function(filename, nSP){
 #' character string
 #'
 #' @return NULL
+#'
+#' @import data.table
 #' @export
 #'
 #' @examples
