@@ -80,6 +80,20 @@
 #' @export
 #'
 #' @examples
+#' # find the directory
+#' wkdir <- paste0(system.file("inst", package = "Rflow"))
+#'
+#' # make fresh
+#' GW.nc(wkdir, "rflow_mf_demo", "RFLOW_EXAMPLE", title = "example",
+#'       author = "model builder's name", datum = "OD or something",
+#'       xyt0 = c(0, 0, 0), start_date = "the start time descriptively")
+#'
+#' # update results, but keep metadata, with updating = TRUE (default)
+#' GW.nc(wkdir, "rflow_mf_demo", "RFLOW_EXAMPLE")
+#'
+#' library(RNetCDF)
+#' mfdata <- open.nc(paste0(wkdir, "/rflow_mf_demo.nc"))
+#' print.nc(mfdata)
 #'
 GW.nc <- function(dir, mfrt, ncrt = mfrt,
                   DIS = paste0(mfrt, ".dis"), HDS = paste0(mfrt, ".hds"),
@@ -142,8 +156,8 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
     exst[is.na(exst)] <- FALSE
 
     # boundary condition flows to read
-    BCflow.files <<- (fnm.vec[-(1:2)])[exst[-(1:2)]]
-    on.exit(rm(BCflow.files, pos = .GlobalEnv), add = TRUE)
+    BCflow.files <- (fnm.vec[-(1:2)])[exst[-(1:2)]]
+    # on.exit(rm(BCflow.files, pos = .GlobalEnv), add = TRUE)
 
     ## read discretisation information and assign dimensions
     # also read values assigned to no flow and dry cells
@@ -167,7 +181,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
     }
 
     # find relative time values at the end of time steps
-    mftime <- mftime.DIS(dis)
+    mftime <- mftstime(dis)
 
     if(missing(HDRY)){
       HDRY <- if(file.exists(LPF)){
@@ -412,7 +426,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
                       prod(dis$extent[c("NCOL", "NROW", "NLAY")]), 4L)
 
         dstarts <- c(1L, 1L, 1L, tsi)
-        if(!(arty == "ConstantHead") && !ch){
+        if(!(arty == "ConstantHead"&& !ch)){
           var.put.nc(nc, arty, ar, dstarts, dcounts)
           cat(".")
         }
