@@ -77,6 +77,7 @@
 #' Prints a summary of the final NetCDF data set using print.nc.
 #'
 #' @import RNetCDF
+#' @import td
 #' @export
 #'
 #' @examples
