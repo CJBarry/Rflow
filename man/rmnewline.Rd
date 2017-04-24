@@ -15,4 +15,3 @@ vector of character strings with any \code{"\\n"}s removed from the ends
 \description{
 Remove a tailing line end
 }
-

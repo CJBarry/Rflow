@@ -38,6 +38,27 @@ print computed \code{zlim} to screen? (in case that
  \code{zlim = "angle"}, shows which directions the colours represent)}
 
 \item{...}{}
+
+\item{...}{Arguments passed on to \code{MFimage}
+\describe{
+  \item{mtx}{matrix;
+variable to plot}
+  \item{gccs}{numeric \code{[NCOL + 1]};
+column divider \eqn{x} co-ordinates, in ascending order}
+  \item{grcs}{numeric \code{[NROW + 1]};
+row divider \eqn{y} co-ordinates, in ascending order}
+  \item{zlim}{numeric \code{[2]} or character string;
+min. and max. values to plot; alternatively use \code{breaks} argument
+ as in \code{graphics::image}; additionally, three character string
+ options are given: \code{"auto"} for automatic range calculation
+ (pretty), \code{"sym"} for automatic range that is symmetric about \eqn{0}
+ and "angle" for a range between \eqn{-pi} and \eqn{pi}}
+  \item{col}{character \code{[]};
+colours}
+  \item{show.range}{logical \code{[1]};
+print computed \code{zlim} to screen? (in case that
+ \code{zlim = "angle"}, shows which directions the colours represent)}
+}}
 }
 \description{
 Plot MODFLOW variable matrix from NetCDF
@@ -55,4 +76,3 @@ MFncimage(mfdata, "RiverLeakage",
           "sym", show.range = TRUE)
 
 }
-

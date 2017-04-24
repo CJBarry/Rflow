@@ -16,4 +16,3 @@ expected.lines.RIARRAY(header.txt, ncol, nrow, nlay = 1L)
 Uses the header file to determine how many lines to read for a text
  array, excluding the header itself.
 }
-

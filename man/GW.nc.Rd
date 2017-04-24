@@ -110,4 +110,3 @@ mfdata <- open.nc(paste0(wkdir, "/rflow_mf_demo.nc"))
 print.nc(mfdata)
 
 }
-

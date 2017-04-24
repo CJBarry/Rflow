@@ -24,4 +24,3 @@ Rflow:::flip(mtx, 1L)
 Rflow:::flip(mtx, 2L)
 
 }
-

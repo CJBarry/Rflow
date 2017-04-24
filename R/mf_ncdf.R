@@ -209,6 +209,11 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
                 class = "spl.instructions")
     }, 1:nspl, c(0L, split.tss[-nspl]) + 1L, split.tss)
 
+    sp.start_date <- if(i == 1L) start_date else if({
+      "td" %in% rownames(installed.packages()) &&
+        length.unit %in% c("d", "day")
+    }) td::invtd(xyt0[3L] + mftime[instruct[[i - 1L]]$endts]) else ""
+
     for(i in 1:nspl){
       # should update to pass all arguments
       GW.nc(".", mfrt, paste(mfrt, i, sep = "_"), updating = FALSE,
@@ -218,9 +223,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
             }),
             author = author, time.unit = time.unit,
             length.unit = length.unit,
-            start_date = invtd(xyt0[3L] + if(i == 1L) 0 else{
-              mftime[instruct[[i - 1L]]$endts]
-            }),
+            start_date = sp.start_date,
             HNOFLO = HNOFLO, HDRY = HDRY,
             HDS = HDS, CBB = CBB, CBW = CBW, CRC = CRC, CBD = CBD,
             CRV = CRV, CS1 = CS1, CBG = CBG)

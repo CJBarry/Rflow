@@ -19,14 +19,16 @@ LazyData: TRUE
 Depends:
     R (>= 3.0.0)
 Imports:
+    abind,
     graphics,
     grDevices,
     data.table,
     plyr,
     RNetCDF,
     stringr,
-    stats,
-    td
-RoxygenNote: 5.0.1
+    stats
+RoxygenNote: 6.0.1
 Suggests:
     testthat
+Enhances:
+    td
