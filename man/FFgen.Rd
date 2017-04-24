@@ -12,4 +12,3 @@ FFgen(value, type, w = 10L, d = 4L)
 \description{
 Generic fixed formats
 }
-

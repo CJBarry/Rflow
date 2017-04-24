@@ -71,4 +71,3 @@ ldivs.cr <- c(var.get.nc(mfdata, "elev", c(C, R, NA), c(1L, 1L, NA)))
 (ts <- cellref.loc(1500, mftstime(mfdata)))
 
 }
-

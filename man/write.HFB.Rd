@@ -18,4 +18,3 @@ optional title to put into package file as a comment}
 Writes information from a HFB.MFpackage list object to a MODFLOW-readable
  HFB package file.
 }
-
