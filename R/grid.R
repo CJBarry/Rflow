@@ -181,7 +181,7 @@ grcs <- function(data, absolute = FALSE, y0){
            }else 0)
          },
          DIS.MFpackage = {
-           if(absolute && missing(x0)) stop({
+           if(absolute && missing(y0)) stop({
              "Rflow::grcs: with a DIS.MFpackage, y0 must be given for absolute co-ordinates"
            })
 
