@@ -134,7 +134,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
     }
 
     ## check that files exist before proceeding
-    fnm.vec <- c(dis = if(is.character(DIS)) DIS else "",
+    fnm.vec <- c(DIS = if(is.character(DIS)) DIS else "",
                  head = HDS, budget = CBB, wells = CBW,
                  recharge = CRC, river = CRV, drain = CBD, ghb = CBG,
                  stream = CS1)
@@ -157,23 +157,22 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
     exst[is.na(exst)] <- FALSE
 
     # boundary condition flows to read
-    BCflow.files <- (fnm.vec[-(1:2)])[exst[-(1:2)]]
-    # on.exit(rm(BCflow.files, pos = .GlobalEnv), add = TRUE)
+    BCflow.files <<- (fnm.vec[-(1:2)])[exst[-(1:2)]]
+    on.exit(rm(BCflow.files, pos = .GlobalEnv), add = TRUE)
 
     ## read discretisation information and assign dimensions
     # also read values assigned to no flow and dry cells
-    dis <- switch(class(DIS),
+    DIS <- switch(class(DIS),
                   character = read.DIS(DIS),
                   DIS.MFpackage = DIS,
                   stop({
                     "DIS must be character string giving path to the DIS package file, or a preloaded DIS package of class DIS.MFpackage, as returned by read.DIS"
                   }))
-    rm(DIS)
 
     if(missing(HNOFLO)){
       HNOFLO <- switch(class(BAS),
                        character = if(file.exists(BAS)){
-                         read.BAS(BAS, dis)$HNOFLO
+                         read.BAS(BAS, DIS)$HNOFLO
                        }else 999,
                        BAS.MFpackage = BAS$HNOFLO,
                        stop({
@@ -182,7 +181,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
     }
 
     # find relative time values at the end of time steps
-    mftime <- mftstime(dis)
+    mftime <- mftstime(DIS)
 
     if(missing(HDRY)){
       HDRY <- if(file.exists(LPF)){
@@ -222,6 +221,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
               mftime[instruct[[i - 1L]]$endts]
             }),
             HNOFLO = HNOFLO, HDRY = HDRY,
+            DIS = DIS, BAS = BAS, BCF = BCF, LPF = LPF,
             HDS = HDS, CBB = CBB, CBW = CBW, CRC = CRC, CBD = CBD,
             CRV = CRV, CS1 = CS1, CBG = CBG)
     }
@@ -266,16 +266,16 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
   }
 
   # define dimensions
-  dim.def.nc(nc, "NCOL", dis$extent["NCOL"])
-  dim.def.nc(nc, "NROW", dis$extent["NROW"])
-  dim.def.nc(nc, "NLAY", dis$extent["NLAY"])
-  dim.def.nc(nc, "NTS", sum(dis$sps$NSTP))
+  dim.def.nc(nc, "NCOL", DIS$extent["NCOL"])
+  dim.def.nc(nc, "NROW", DIS$extent["NROW"])
+  dim.def.nc(nc, "NLAY", DIS$extent["NLAY"])
+  dim.def.nc(nc, "NTS", sum(DIS$sps$NSTP))
   if(spl.mode){
     dim.def.nc(nc, "sNTS", split.tss$endts - split.tss$startts + 1L)
   }
-  dim.def.nc(nc, "NCOL+1", dis$extent["NCOL"] + 1L)
-  dim.def.nc(nc, "NROW+1", dis$extent["NROW"] + 1L)
-  dim.def.nc(nc, "NLAY+1", dis$extent["NLAY"] + 1L)
+  dim.def.nc(nc, "NCOL+1", DIS$extent["NCOL"] + 1L)
+  dim.def.nc(nc, "NROW+1", DIS$extent["NROW"] + 1L)
+  dim.def.nc(nc, "NLAY+1", DIS$extent["NLAY"] + 1L)
   # max string length
   dim.def.nc(nc, "msl", 16L)
   # number of variables
@@ -298,15 +298,15 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
   nts <- if(spl.mode) "sNTS" else "NTS"
 
   # expand if necessary
-  rsp <- dis$DELC
-  if(identical(names(rsp), "CNSTNT")) rsp <- rep(rsp, dis$extent["NROW"])
+  rsp <- DIS$DELC
+  if(identical(names(rsp), "CNSTNT")) rsp <- rep(rsp, DIS$extent["NROW"])
   grcs <- cumsum(c(0, rsp))
-  csp <- dis$DELR
-  if(identical(names(csp), "CNSTNT")) csp <- rep(csp, dis$extent["NCOL"])
+  csp <- DIS$DELR
+  if(identical(names(csp), "CNSTNT")) csp <- rep(csp, DIS$extent["NCOL"])
   gccs <- cumsum(c(0, csp))
-  if(is.vector(elev <- dis$elev)){
+  if(is.vector(elev <- DIS$elev)){
     elev <- sapply(elev, matrix,
-                   dis$extent["NCOL"], dis$extent["NROW"],
+                   DIS$extent["NCOL"], DIS$extent["NROW"],
                    simplify = "array")
   }
 
@@ -315,7 +315,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
   var.put.nc(nc, "elev", elev)
 
   # how many time steps have there been in the previous stresss periods?
-  prev.ts <- cumsum(c(0, dis$sps$NSTP[-dis$extent["NPER"]]))
+  prev.ts <- cumsum(c(0, DIS$sps$NSTP[-DIS$extent["NPER"]]))
 
   ## assign time and head arrays
   var.def.nc(nc, "sp_ts", "NC_CHAR", c("msl", nts))
@@ -341,7 +341,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
   to.read <- file(HDS, "rb")
   cat("Head save file:\n")
 
-  dcounts <- c(dis$extent[c("NCOL", "NROW")], 1L, 1L)
+  dcounts <- c(DIS$extent[c("NCOL", "NROW")], 1L, 1L)
   oldts <- tsi <- 0L
   repeat{
     # meta data, including elapsed time and layer number
@@ -363,7 +363,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
 
       # data array for this layer and time step
       ar <- readBin(to.read, "double",
-                    prod(dis$extent[c("NCOL", "NROW")]), 4L)
+                    prod(DIS$extent[c("NCOL", "NROW")]), 4L)
 
       dstarts <- c(1L, 1L, lay, tsi)
 
@@ -380,7 +380,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
       readBin(to.read, "double", 2L, 4L)
       readChar(to.read, 16L)
       readBin(to.read, "integer", 3L, 4L)
-      readBin(to.read, "double", prod(dis$extent[c("NCOL", "NROW")]), 4L)
+      readBin(to.read, "double", prod(DIS$extent[c("NCOL", "NROW")]), 4L)
     }
   }; cat("\n")
   rm(ar); close(to.read)
@@ -389,7 +389,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
   artys <- character(0L)
   cat("Flux files (the first arrays may be slow):\n")
 
-  dcounts <- c(dis$extent[c("NCOL", "NROW", "NLAY")], 1L)
+  dcounts <- c(DIS$extent[c("NCOL", "NROW", "NLAY")], 1L)
   oldts <- tsi <- 0L
   for(fnm in BCflow.files){
     to.read <- file(fnm, "rb")
@@ -424,7 +424,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
         readBin(to.read, "integer", 3L, 4L)
 
         ar <- readBin(to.read, "double",
-                      prod(dis$extent[c("NCOL", "NROW", "NLAY")]), 4L)
+                      prod(DIS$extent[c("NCOL", "NROW", "NLAY")]), 4L)
 
         dstarts <- c(1L, 1L, 1L, tsi)
         if(!(arty == "ConstantHead"&& !ch)){
@@ -438,7 +438,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
         readChar(to.read, 16L)
         readBin(to.read, "integer", 3L, 4L)
         readBin(to.read, "double",
-                prod(dis$extent[c("NCOL", "NROW", "NLAY")]), 4L)
+                prod(DIS$extent[c("NCOL", "NROW", "NLAY")]), 4L)
       }
     }
     close(to.read)
