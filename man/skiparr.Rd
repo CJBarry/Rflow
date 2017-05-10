@@ -21,4 +21,3 @@ numbers of bytes per entry}
 \description{
 Skip over unneed binary arrays
 }
-

@@ -19,4 +19,3 @@ Format array headers from MODFLOW
 Rflow:::nicearname(" FLOW RIGHT FACE") # "FlowRightFace"
 
 }
-

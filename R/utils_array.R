@@ -214,6 +214,8 @@ RIARRAY <- function(arr = NULL, df = NULL, CNSTNT = 0,
 #' @param collapse
 #' @param ...
 #'
+#' @importFrom abind abind
+#'
 #' @return
 #' character string
 #'

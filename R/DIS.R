@@ -141,7 +141,7 @@ write.DIS <- function(DIS, filename, title){
   writeLines(if(isTRUE(all.equal(names(DIS$DELC), "CNSTNT"))){
     RIARRAY(CNSTNT = DIS$DELC, FMTIN_type = "e")
   }else{
-    RIARRAY(DIS$DELC, FMTIN_type = "e")
+    RIARRAY(DIS$DELC, FMTIN_type = "e", flag.no = 29L)
   }, con)
 
   # elevations

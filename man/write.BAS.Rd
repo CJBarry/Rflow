@@ -43,4 +43,3 @@ Writes information from a BAS.MFpackage list object to a MODFLOW-readable
 \examples{
 
 }
-
