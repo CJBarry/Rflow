@@ -1,12 +1,14 @@
-# Rflow package - functions for the GHB MODFLOW package
+# Rflow package - functions for the RIV MODFLOW package
 
-#' Read general head boundary (GHB) package file
+#' Read river (RIV) package file
 #'
-#' Reads information from a MODFLOW GHB package file.  The GHB package
-#'  specifies the simplest kind of head dependent flux boundary condition
-#'  that includes a conductance term.  The flux is calculated by:\deqn{
-#'    Q_{GHB} = \frac{h_{model} - h_{GHB}}{Cond}
-#'  }
+#' Reads information from a MODFLOW RIV package file.  The RIV package
+#'  specifies a head dependent flux boundary condition that includes a
+#'  conductance term.  The flux is calculated by:\deqn{
+#'    Q_{RIV} = \frac{h_{mb} - h_{RIV}}{Cond}
+#'  }\cr
+#'  where \eqn{h_{mb}} is the river bottom elevation or the model head for
+#'  the cell, whichever is higher
 #'
 #' @param filename
 #' character string;
@@ -22,26 +24,30 @@
 #'  them
 #'
 #' @return
-#' object of class GHB.MFpackage:\cr
+#' object of class RIV.MFpackage:\cr
 #'   \code{$header} (1-row data.frame):\cr
-#'     \code{..$MXACTB} (int): the maximum number of GHB boundary cells in any
+#'     \code{..$MXACTB} (int): the maximum number of RIV boundary cells in any
 #'       stress period\cr
-#'     \code{..$IGHBCB} (int): unit number to which to save flow to GHB cells\cr
+#'     \code{..$IRIVCB} (int): unit number to which to save flow to RIV cells\cr
 #'   \code{$spheaders} (data.frame with \code{nSP} rows):\cr
-#'     \code{..$ITMP} (int): number of active GHB cells in each stress period
+#'     \code{..$ITMP} (int): number of active RIV cells in each stress period
 #'      or, if \eqn{<1}, signals to reuse information from previous stress
 #'      period\cr
 #'     \code{..$NP} (int): number of parameters active in each stress period (not
 #'       that parameter-defined boundaries are not currently supported in
-#'       \code{read.GHB})\cr
+#'       \code{read.RIV})\cr
 #'   \code{$data} (data.table):\cr
 #'     \code{..$L} (int): layer\cr
 #'     \code{..$R} (int): row\cr
 #'     \code{..$C} (int): column\cr
-#'     \code{..$BHead} (double): head at boundary above model datum
-#'      (\eqn{h_{GHB}})\cr
+#'     \code{..$Stage} (double): head at boundary above model datum
+#'      (\eqn{h_{RIV}})\cr
 #'     \code{..$Cond} (double): conductance of boundary (units
 #'      \eqn{length^2/time})\cr
+#'     \code{..$Rbot} (double): river bottom elevation; the difference
+#'      between \code{Stage} and \code{Rbot} determines the maximum drainage
+#'      of the river into the aquifer, although there is no limit to flow in
+#'      the other direction\cr
 #'     \code{..$...}: any auxiliary variables that are included in the file
 #'      but which don't play a role in the MODFLOW simulation
 #'
@@ -49,8 +55,20 @@
 #' @export
 #'
 #' @examples
+#' fnms <- system.file(c("rflow_mf_demo.dis",
+#'                       "rflow_mf_demo.riv"), package = "Rflow")
 #'
-read.GHB <- function(filename, nSP, FREE = TRUE){
+#' # get model information from DIS package file
+#' dis <- read.DIS(fnms[1L])
+#'
+#' riv <- read.RIV(fnms[2L], dis)
+#' # or, if you already know how many stress periods there are
+#' riv <- read.RIV(fnms[2L], 15L)
+#'
+#' class(riv)
+#' str(riv)
+#'
+read.RIV <- function(filename, nSP, FREE = TRUE){
   # get number of stress periods
   nSP <- switch(class(nSP),
                 integer = nSP,
@@ -76,7 +94,7 @@ read.GHB <- function(filename, nSP, FREE = TRUE){
   if(skip) readLines(con, skip)
 
   header <- read.table(con, nrows = 1L)
-  names(header)[1:2] <- c("MXACTB", "IGHBCB")
+  names(header)[1:2] <- c("MXACTR", "IRIVCB")
   aux <- if(length(header) > 2L) sapply(header[-(1:2)], as.character)
 
   auxs <- if(!is.null(aux)){
@@ -92,7 +110,7 @@ read.GHB <- function(filename, nSP, FREE = TRUE){
   }
 
   spheaders <- data.frame(ITMP = integer(nSP), NP = integer(nSP))
-  ghb <- vector("list", nSP)
+  riv <- vector("list", nSP)
 
   for(sp in 1:nSP){
     sphd <- if(FREE){
@@ -102,37 +120,38 @@ read.GHB <- function(filename, nSP, FREE = TRUE){
       read.fwf(con, c(10L, 10L), n = 1L, col.names = c("ITMP", "NP"))
     }
     if(sphd$NP > 0L) stop({
-      "read.GHB does not yet support boundaries specified as parameters"
+      "read.RIV does not yet support boundaries specified as parameters"
     })
 
     spheaders[sp,] <- sphd
 
-    ghb[[sp]] <- if(FREE){
+    riv[[sp]] <- if(FREE){
       read.table(con, nrows = sphd$ITMP,
-                 col.names = c("L", "R", "C", "BHead", "Cond", auxs))
+                 col.names = c("L", "R", "C", "Stage", "Cond", "Rbot",
+                               auxs))
     }else{
-      read.fwf(con, rep(10L, 5L + length(auxs)), n = sphd$ITMP,
-               col.names = c("L", "R", "C", "BHead", "Cond", auxs))
+      read.fwf(con, rep(10L, 6L + length(auxs)), n = sphd$ITMP,
+               col.names = c("L", "R", "C", "Stage", "Cond", "Rbot", auxs))
     }
-    setDT(ghb[[sp]])
-    ghb[[sp]][, "sp" := sp]
+    setDT(riv[[sp]])
+    riv[[sp]][, "sp" := sp]
   }
 
-  data <- rbindlist(ghb)
-  setcolorder(data, c("sp", "L", "R", "C", "BHead", "Cond", auxs))
+  data <- rbindlist(riv)
+  setcolorder(data, c("sp", "L", "R", "C", "Stage", "Cond", "Rbot", auxs))
   setkey(data, sp)
 
   structure(list(header = header, spheaders = spheaders,
-                 data = data), class = "GHB.MFpackage")
+                 data = data), class = "RIV.MFpackage")
 }
 
-#' Write a general head boundary (GHB) package file
+#' Write a river (RIV) package file
 #'
-#' Writes information from a GHB.MFpackage list object to a MODFLOW-readable
-#'  GHB package file.
+#' Writes information from a RIV.MFpackage list object to a MODFLOW-readable
+#'  RIV package file.
 #'
-#' @param GHB
-#' GHB.MFpackage object, as would be returned by \code{\link{read.GHB}}
+#' @param RIV
+#' RIV.MFpackage object, as would be returned by \code{\link{read.RIV}}
 #' @param filename
 #' character string;
 #' file to write to
@@ -144,7 +163,7 @@ read.GHB <- function(filename, nSP, FREE = TRUE){
 #' logical \code{[1]};
 #' should the file be readable by MODFLOW 2000 and higher, or
 #'  (\code{FALSE}) keep back-compatibility with MF96; in the case of the
-#'  GHB package, this means no title lines
+#'  RIV package, this means no title lines
 #' @param write.auxiliaries
 #' logical [1];
 #' whether to include any auxiliary parameters in \code{RIV} in the package
@@ -158,7 +177,13 @@ read.GHB <- function(filename, nSP, FREE = TRUE){
 #'
 #' @examples
 #'
-write.GHB <- function(GHB, filename, title, MF2k = TRUE,
+#' fnm <- system.file("rflow_mf_demo.riv", package = "Rflow")
+#' riv <- read.RIV(fnm, 15L, FALSE)
+#'
+#' # write modified riv package to file
+#' write.RIV(riv, "RFLOW_EXAMPLE.riv", "example")
+#'
+write.RIV <- function(RIV, filename, title, MF2k = TRUE,
                       write.auxiliaries = TRUE){
   con <- file(filename, "wt")
   on.exit(close(con))
@@ -168,50 +193,50 @@ write.GHB <- function(GHB, filename, title, MF2k = TRUE,
   }
 
   if(MF2k) writeLines(c({
-    "# MODFLOW 2000 general head boundary package file created by write.GHB function, in R"
+    "# MODFLOW 2000 river package file created by write.RIV function, in R"
   }, {
     "PARAMETER  0  0"
   }), con)
 
   # auxiliary parameters
   if(write.auxiliaries){
-    auxs <- sapply(GHB$header[, -(1:2)], as.character)
+    auxs <- sapply(RIV$header[, -(1:2)], as.character)
   }
 
-  with(GHB$header, writeLines({
-    formatC(c(MXACTB, IGHBCB), width = 10L, digits = 0L, format = "d")
+  with(RIV$header, writeLines({
+    formatC(c(MXACTR, IRIVCB), width = 10L, digits = 0L, format = "d")
   }, sep = "", con))
-  if(write.auxiliaries && ncol(GHB$header) > 2L){
+  if(write.auxiliaries && ncol(RIV$header) > 2L){
     writeLines(paste0(" AUXILIARY ",
-                      sapply(GHB$header[, -(1:2)], as.character)),
+                      sapply(RIV$header[, -(1:2)], as.character)),
                sep = "", con)
   }
   writeLines("", con)
 
-  nSP <- nrow(GHB$spheaders)
+  nSP <- nrow(RIV$spheaders)
 
-  setcolorder(GHB$data, c("sp", "L", "R", "C", "BHead", "Cond", auxs,
+  setcolorder(RIV$data, c("sp", "L", "R", "C", "Stage", "Cond", "Rbot", auxs,
                           recursive = TRUE))
-  if(write.auxiliaries && ncol(GHB$data) > 6L){
-    ff.width <- rep(10L, ncol(GHB$data) - 1L)
-    ff.digits <- c(0L, 0L, 0L, 3L, 3L,
-                   sapply(sapply(GHB$data[, -(1:6), with = FALSE], class),
+  if(write.auxiliaries && ncol(RIV$data) > 6L){
+    ff.width <- rep(10L, ncol(RIV$data) - 1L)
+    ff.digits <- c(0L, 0L, 0L, 3L, 3L, 3L,
+                   sapply(sapply(RIV$data[, -(1:7), with = FALSE], class),
                           switch, numeric = 3L, 0L))
-    ff.format <- c("d", "d", "d", "f", "f",
-                   sapply(sapply(GHB$data[, -(1:6), with = FALSE], class),
+    ff.format <- c("d", "d", "d", "f", "f", "f",
+                   sapply(sapply(RIV$data[, -(1:7), with = FALSE], class),
                           switch, numeric = "f", integer = "d", "s"))
 
-    cols <- 2:ncol(GHB$data)
+    cols <- 2:ncol(RIV$data)
   }else{
-    ff.width <- c(10L, 10L, 10L, 10L, 10L)
-    ff.digits <- c(0L, 0L, 0L, 3L, 3L)
-    ff.format <- c("d", "d", "d", "f", "f")
+    ff.width <- c(10L, 10L, 10L, 10L, 10L, 10L)
+    ff.digits <- c(0L, 0L, 0L, 3L, 3L, 3L)
+    ff.format <- c("d", "d", "d", "f", "f", "f")
 
-    cols <- 2:6
+    cols <- 2:7
   }
 
   for(spn in 1:nSP){
-    with(GHB$spheaders[spn,], writeLines({
+    with(RIV$spheaders[spn,], writeLines({
       formatC(c(ITMP, NP), width = 10L, digits = 0L, format = "d")
     }, sep = "", con))
     writeLines("", con)
@@ -219,7 +244,7 @@ write.GHB <- function(GHB, filename, title, MF2k = TRUE,
     # can't use data.table's efficient `by` subsetting here because some
     #  stress periods may have no entries, which would result in them being
     #  omitted
-    GHB$data[sp == spn, {
+    RIV$data[sp == spn, {
       ffs <- vapply(1:length(cols), function(coln){
         formatC(.SD[[cols[coln]]],
                 width = ff.width[coln],
