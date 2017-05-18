@@ -20,6 +20,10 @@ optional title to prefix to the file, for your reference (not used if
 should the file be readable by MODFLOW 2000 and higher, or
  (\code{FALSE}) keep back-compatibility with MF96; in the case of the
  GHB package, this means no title lines}
+
+\item{write.auxiliaries}{logical [1];
+whether to include any auxiliary parameters in \code{RIV} in the package
+ file}
 }
 \description{
 Writes information from a GHB.MFpackage list object to a MODFLOW-readable
@@ -28,3 +32,4 @@ Writes information from a GHB.MFpackage list object to a MODFLOW-readable
 \examples{
 
 }
+
