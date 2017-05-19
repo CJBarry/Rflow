@@ -300,7 +300,7 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
   nts <- if(spl.mode) "sNTS" else "NTS"
 
   # expand if necessary
-  rsp <- DIS$DELC
+  rsp <- rev(DIS$DELC)
   if(identical(names(rsp), "CNSTNT")) rsp <- rep(rsp, DIS$extent["NROW"])
   grcs <- cumsum(c(0, rsp))
   csp <- DIS$DELR

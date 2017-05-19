@@ -101,10 +101,21 @@ cellref.loc <- function(x, gcs, rev = FALSE){
 #'  origin (bottom left corner) must be given.  Not needed with NetCDFs
 #'  because this information is stored in the NetCDF output generated from
 #'  \code{Rflow}.
+#' @param v
+#' numeric \code{[]};
+#' a vector of grid divider co-ordinates
 #'
 #' @return
 #' \code{gccs}: numeric \code{[NCOL + 1]}\cr
-#' \code{grcs}: numeric \code{[NROW + 1]}
+#' \code{grcs}: numeric \code{[NROW + 1]}\cr
+#' \code{mids}: numeric \code{[length(v) - 1]}
+#'
+#' @details
+#' \code{gccs} and \code{grcs} return the x co-ordinates of the column
+#'  dividers and the y co-ordinates of the row dividers respectively, in
+#'  each case in ascending order, which will be the reverse of the row
+#'  order in the latter case.  Wrap with \code{mids} to find the midpoints,
+#'  that is the node centres.
 #'
 #' @examples
 #' # using DIS.MFpackage
@@ -131,6 +142,12 @@ cellref.loc <- function(x, gcs, rev = FALSE){
 #' # - if t0 is given with a NetCDF, a warning is given to avoid
 #' #    ambiguity
 #' \dontrun{gccs(mfdata, TRUE, 1000)}
+#'
+#' # node centre x and y co-ordinates:
+#' # - x
+#' mids(gccs(mfdata, TRUE))
+#' # - y
+#' mids(grcs(mfdata, TRUE))
 #'
 NULL
 
@@ -190,10 +207,17 @@ grcs <- function(data, absolute = FALSE, y0){
                         length.out = data$extent["NROW"] + 1L)) +
                if(absolute) y0 else 0
            }else{
-             c(0, cumsum(data$DELC)) + if(absolute) y0 else 0
+             c(0, cumsum(rev(data$DELC))) + if(absolute) y0 else 0
            }
          },
          stop("data must be a DIS.MFpackage or a NetCDF"))
+}
+
+#' @rdname gcs
+#' @export
+#'
+mids <- function(v){
+  (v[-1L] + v[-length(v)])/2
 }
 
 #' @name mftime
