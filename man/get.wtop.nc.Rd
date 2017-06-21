@@ -31,3 +31,4 @@ mfdata <- RNetCDF::open.nc(system.file("rflow_mf_demo.nc", package = "Rflow"))
 wtop <- get.wtop.nc(mfdata, "RFLOW_EXAMPLE_wtop.nc")
 print.nc(wtop)
 }
+

@@ -77,3 +77,4 @@ Reads information from a MODFLOW STR package file.  The stream package
 \references{
 Prudic, D.E., 1989. Documentation of a Computer Program to Simulate Stream-Aquifer Relations Using a Modular, Finite-Difference Ground-water Flow Model, Carson City, Nevada. Available at: https://pubs.er.usgs.gov/publication/ofr88729.
 }
+

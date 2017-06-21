@@ -27,8 +27,7 @@ Imports:
     RNetCDF,
     stringr,
     stats
-RoxygenNote: 6.0.1
+RoxygenNote: 5.0.1
 Suggests:
     testthat
-Enhances:
-    td
+Enhances: td

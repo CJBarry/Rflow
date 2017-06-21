@@ -392,10 +392,10 @@ GW.nc <- function(dir, mfrt, ncrt = mfrt,
   cat("Flux files (the first arrays may be slow):\n")
 
   dcounts <- c(DIS$extent[c("NCOL", "NROW", "NLAY")], 1L)
-  oldts <- tsi <- 0L
   for(fnm in BCflow.files){
     to.read <- file(fnm, "rb")
 
+    oldts <- tsi <- 0L
     repeat{
       tssp <- readBin(to.read, "integer", 2L, 4L)
 
