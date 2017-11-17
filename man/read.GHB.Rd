@@ -53,4 +53,3 @@ Reads information from a MODFLOW GHB package file.  The GHB package
 \examples{
 
 }
-

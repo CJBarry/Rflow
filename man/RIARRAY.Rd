@@ -23,4 +23,3 @@ Rflow:::RIARRAY(matrix(1:4, 2, 2), FMTIN_type = "e", FMTIN_w = 12L)
 Rflow:::RIARRAY(CNSTNT = 1L, FMTIN_type = "I", FMTIN_w = 3L)
 
 }
-

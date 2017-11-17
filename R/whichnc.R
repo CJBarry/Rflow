@@ -3,21 +3,22 @@
 #' "which" for NetCDF arrays
 #'
 #' @description
-#' A version of "which" for NetCDF datasets that does not require prior
-#' loading of arrays and avoids loading the whole of large arrays at once.
+#' A version of \code{\link[base]{which}} for NetCDF datasets that does not
+#'  require prior loading of arrays and avoids loading the whole of large
+#'  arrays at once.
 #'
 #' @param ncfile NetCDF connection object
 #' @param variable variable name within NetCDF data set
 #' @param FUN function to operate on array, which should produce a logical
 #' vector or array
-#' @param arr.ind,useNames passed to which
+#' @param arr.ind,useNames passed to \code{\link[base]{which}}
 #' @param size.threshold how large can the array be before the function
 #' performs on chunks?
 #' @param ... additional arguments to FUN
 #'
 #' @return
-#' integer vector (arr.ind = FALSE) or matrix (arr.ind = TRUE), as with
-#' `which`
+#' integer vector (\code{arr.ind = FALSE}) or matrix (\code{arr.ind =
+#'  TRUE}), as with \code{\link[base]{which}}
 #'
 #' @import RNetCDF
 #' @export
