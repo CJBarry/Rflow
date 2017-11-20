@@ -161,7 +161,7 @@ readHDS.arr.old <- function(file, conc = FALSE, time.only = FALSE,
 #'
 #' @return
 #' a list with one or two elements:\cr
-#'   \code{$Head}: num \code{[NCOL, NROW, NLAY, NTS]}; head values, only if
+#'   \code{$data}: num \code{[NCOL, NROW, NLAY, NTS]}; head values, only if
 #'    \code{time.only = FALSE}
 #'   \code{$time}: num \code{[NTS]}; time at end of each time step,
 #'    relative to model start
@@ -302,7 +302,7 @@ readHDS.arr <- function(file, conc = FALSE, time.only = FALSE,
   for(i in seq_along(hds)) for(j in which(!is.na(times))){
     arr[,, paste0("L", AtsL[j, 2L]), AtsL[j, 1L], i] <- hds[[i]][, j]
   }
-  arr <- arr[,,, !is.na(times),]
+  arr <- arr[,,, !is.na(times),, drop = FALSE]
   times <- times[!is.na(times)]
 
   # return list of array and times
