@@ -1,56 +1,7 @@
 ## functions that read MODFLOW data
 
-#' Read Head Save array
-#'
-#' @param file
-#' character;
-#' file name of head save array
-#' @param conc
-#' logical;
-#' is the file in fact an unformatted concentration file (MT3D output)?
-#' @param time.only
-#' logical;
-#' only read the model time information and discard the head data
-#' @param time.bn
-#' integer, 4 or 8;
-#' how many bytes do the time records occupy (generally 4)?
-#' @param hd.bn
-#' integer, 4 or 8;
-#' how many bytes to the head records occupy (generally 4)?
-#' @param show.help
-#' logical;
-#' show what is being read and print message describing output?
-#' @param nf.to.NA
-#' logical;
-#' convert no flow cells to NA
-#' @param nf.val
-#' logical;
-#' if nf.to.NA, what head value indicates a no flow cell?
-#' @param CRs
-#' length-2 list;
-#' elements are either "all" (default) or vectors of column/ row indices
-#' which are requested
-#' @param lays
-#' either "all" (default) or integer vector of requested layers
-#' @param sp_ts
-#' either "all", a length-2 integer vector or a 2-column matrix;
-#' which stress period-time step references to return
-#'
-#'
-#' @return
-#' a list with one or two elements:\cr
-#'   \code{$Head}: num \code{[NCOL, NROW, NLAY, NTS]}; head values, only if
-#'    \code{time.only = FALSE}
-#'   \code{$time}: num \code{[NTS]}; time at end of each time step,
-#'    relative to model start
-#'
-#' @import plyr
-#' @import abind
-#' @import stringr
-#' @export
-#'
-#' @examples
-readHDS.arr <- function(file, conc = FALSE, time.only = FALSE,
+
+readHDS.arr.old <- function(file, conc = FALSE, time.only = FALSE,
                         time.bn = 4L, hd.bn = 4L, show.help = TRUE,
                         nf.to.NA = FALSE, nf.val = 999,
                         CRs = list("all", "all"), lays = "all",
@@ -171,12 +122,61 @@ readHDS.arr <- function(file, conc = FALSE, time.only = FALSE,
   close(to.read)
   return(lst)
 }
-
-readHDS.arr2 <- function(file, conc = FALSE, time.only = FALSE,
-                         time.bn = 4L, hd.bn = 4L, show.help = TRUE,
-                         nf.to.NA = FALSE, nf.val = 999,
-                         CRs = list("all", "all"), lays = "all",
-                         sp_ts = "all"){
+#' Read Head Save array
+#'
+#' @param file
+#' character;
+#' file name of head save array
+#' @param conc
+#' logical;
+#' is the file in fact an unformatted concentration file (MT3D output)?
+#' @param time.only
+#' logical;
+#' only read the model time information and discard the head data
+#' @param time.bn
+#' integer, 4 or 8;
+#' how many bytes do the time records occupy (generally 4)?
+#' @param hd.bn
+#' integer, 4 or 8;
+#' how many bytes to the head records occupy (generally 4)?
+#' @param show.help
+#' logical;
+#' show what is being read and print message describing output?
+#' @param nf.to.NA
+#' logical;
+#' convert no flow cells to NA
+#' @param nf.val
+#' logical;
+#' if nf.to.NA, what head value indicates a no flow cell?
+#' @param CRs
+#' length-2 list;
+#' elements are either "all" (default) or vectors of column/ row indices
+#'  which are requested (not currently implemented)
+#' @param lays
+#' either "all" (default) or integer vector of requested layers
+#' @param sp_ts
+#' either "all", a length-2 integer vector or a 2-column matrix;
+#' which stress period-time step references to return
+#'
+#'
+#' @return
+#' a list with one or two elements:\cr
+#'   \code{$Head}: num \code{[NCOL, NROW, NLAY, NTS]}; head values, only if
+#'    \code{time.only = FALSE}
+#'   \code{$time}: num \code{[NTS]}; time at end of each time step,
+#'    relative to model start
+#'
+#' @import plyr
+#' @import abind
+#' @import stringr
+#' @export
+#'
+#' @examples
+readHDS.arr <- function(file, conc = FALSE, time.only = FALSE,
+                        time.bn = 4L, hd.bn = 4L, show.help = TRUE,
+                        nf.to.NA = FALSE, nf.val = 999,
+                        CRs = list("all", "all"), lays = "all",
+                        sp_ts = "all"){
   to.read <- file(file, "rb")
   on.exit(close(to.read))
   tssp1 <- readBin(to.read, "integer", 2L, 4L)
@@ -195,7 +195,7 @@ readHDS.arr2 <- function(file, conc = FALSE, time.only = FALSE,
   bpa <- nval*hd.bn + 36L + 2L*time.bn # bytes per array (including metadata)
   nar.est <- as.integer(fs/bpa) + 10L # small overestimate for safety
 
-  if(!identical(sp_ts, "all") || !is.matrix(sp_ts)) sp_ts <- t(sp_ts)
+  if(!identical(sp_ts, "all") && !is.matrix(sp_ts)) sp_ts <- t(sp_ts)
 
   # determine whether to include in result
   retain <- `&&`(identical(lays, "all") || lay1 %in% lays,
@@ -280,7 +280,7 @@ readHDS.arr2 <- function(file, conc = FALSE, time.only = FALSE,
   # if nothing has been retained
   if(an == 0L){
     warning("Rflow::readHDS.arr: no existing layers or timesteps requested, returning dummy output")
-    return(list(hds = NULL, time = double(0L)))
+    return(list(data = NULL, time = double(0L)))
   }
 
   # remove over-allocated bits
@@ -299,12 +299,14 @@ readHDS.arr2 <- function(file, conc = FALSE, time.only = FALSE,
                     names(times), names(hds)))
 
   # fill array
-  for(i in seq_along(hds)) for(j in seq_len(an)){
+  for(i in seq_along(hds)) for(j in which(!is.na(times))){
     arr[,, paste0("L", AtsL[j, 2L]), AtsL[j, 1L], i] <- hds[[i]][, j]
   }
+  arr <- arr[,,, !is.na(times),]
+  times <- times[!is.na(times)]
 
   # return list of array and times
-  list(hds = arr, time = times)
+  list(data = arr, time = times)
 }
 
 
