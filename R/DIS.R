@@ -37,7 +37,7 @@
 #'
 read.DIS <- function(file){
   txt <- readLines(file)
-  txt <- txt[!is.comment(txt, "#")]
+  txt <- txt[!is.comment(txt, c("#", "<"))]
 
   #gets the numbers from the first (non-comment) entry
   extent <- as.integer(str_extract_all(txt[1], "\\d+", simplify = T))

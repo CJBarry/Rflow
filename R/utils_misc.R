@@ -23,7 +23,13 @@
 #' Rflow:::is.comment("code", "")
 #'
 is.comment <- function(line, comm.char = "#", allow.ws = FALSE){
-  if(comm.char == "") return(FALSE)
+  if(length(line) > 1L){
+    return(vapply(line, is.comment, logical(1L), comm.char, allow.ws))
+  }
+  if(length(comm.char) > 1L){
+    return(any(vapply(comm.char, is.comment, logical(1L), line = line, allow.ws)))
+  }
+  if(identical(comm.char, "")) return(FALSE)
   if(allow.ws) line = trimws(line)
   substring(line, 1, nchar(comm.char)) %in% comm.char
 }

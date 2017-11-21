@@ -222,10 +222,10 @@ readHDS.arr <- function(file, conc = FALSE, time.only = FALSE,
     names(times)[1L] <- paste(rev(tssp1), collapse = "_")
   }
 
-  AtsL <- matrix(NA_integer_, nar.est, 2L)
-  if(retain) AtsL[1L,] <- c(1L, lay1)
+  AtsLty <- matrix(NA_integer_, nar.est, 3L)
+  if(retain) AtsLty[1L,] <- c(1L, lay1, 1L)
 
-  tsn <- 1L
+  tsn <- if(retain) 1L else 0L
   an <- if(retain) 1L else 0L
   lay.old <- 0L
   repeat{
@@ -244,22 +244,21 @@ readHDS.arr <- function(file, conc = FALSE, time.only = FALSE,
                    identical(sp_ts, "all") || any(sp_ts[, 1L] == tssp.new[2L] &
                                                     sp_ts[, 2L] == tssp.new[1L]))
 
+    if(retain) an <- an + 1L
     if(retain && !tssp.name %in% names(times)){
       tsn <- tsn + 1L
-      an <- an + 1L
 
       tssp[tsn,] <- tssp.new
 
       times[tsn] <- times.new
       names(times)[tsn] <- tssp.name
-    }else if(retain && lay != lay.old) an <- an + 1L
-
-    if(retain) AtsL[an,] <- c(tsn, lay)
+    }
 
     ar <- readBin(to.read, "double", nval, hd.bn)
     if(retain){
       if(nf.to.NA) ar[ar == nf.val] <- NA_real_
       if(type %in% names(hds)){
+        PutIn <- which(names(hds) == type)
         hds[[type]][, an] <- ar
       }else{
         NtypesExisting <- sum(!is.na(names(hds)) & names(hds) != "")
@@ -274,6 +273,8 @@ readHDS.arr <- function(file, conc = FALSE, time.only = FALSE,
       lay.old <- lay
     }
 
+    if(retain) AtsLty[an,] <- c(tsn, lay, PutIn)
+
     if(show.help) cat(".")
   }
 
@@ -285,25 +286,23 @@ readHDS.arr <- function(file, conc = FALSE, time.only = FALSE,
 
   # remove over-allocated bits
   hds <- hds[!vapply(hds, is.null, logical(1L))]
-  tssp <- tssp[seq_len(an),, drop = FALSE]
-  times <- times[seq_len(an)]
-  AtsL <- AtsL[seq_len(an),, drop = FALSE]
+  times <- times[seq_len(max(AtsLty[, 1L], na.rm = TRUE))]
+  tssp <- tssp[seq_along(times),, drop = FALSE]
+  AtsLty <- AtsLty[seq_len(an),, drop = FALSE]
   for(i in seq_along(hds)) hds[[i]] <- hds[[i]][, seq_len(an), drop = FALSE]
 
   # make with dimensions [NCOL,NROW,NLAY,Nts,Ntype]
   arr <- array(NA_real_, c(CsRs,
-                           length(unique(AtsL[, 2L])),
+                           length(unique(AtsLty[, 2L])),
                            length(times), length(hds)),
                list(NULL, NULL,
-                    paste0("L", sort(unique(AtsL[, 2L]))),
+                    paste0("L", sort(unique(AtsLty[, 2L]))),
                     names(times), names(hds)))
 
   # fill array
-  for(i in seq_along(hds)) for(j in which(!is.na(times))){
-    arr[,, paste0("L", AtsL[j, 2L]), AtsL[j, 1L], i] <- hds[[i]][, j]
+  for(i in seq_len(an)){
+    arr[,, paste0("L", AtsLty[i, 2L]), AtsLty[i, 1L], AtsLty[i, 3L]] <- hds[[AtsLty[i, 3L]]][, i]
   }
-  arr <- arr[,,, !is.na(times),, drop = FALSE]
-  times <- times[!is.na(times)]
 
   # return list of array and times
   list(data = arr, time = times)
