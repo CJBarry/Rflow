@@ -88,3 +88,26 @@ FFgen <- function(value, type, w = 10L, d = 4L){
   type <- str_to_lower(type)
   do.call(FFlist[[type]], list(value, w, d))
 }
+
+#' Read fixed width numbers
+#'
+#' @param text
+#' character[];
+#' strings to read
+#' @param widths
+#' integer[];
+#' field width of numbers - may be a list of field widths
+#'
+#' @return
+#'
+#' @examples
+read.fws <- function(text, widths){
+  nc <- nchar(text)
+  if(any(nc %% sum(widths) != 0)) stop("Rflow:::read.fws: widths do not fit into string lengths of text")
+  text <- paste(text, collapse = "")
+  widths <- rep(widths, times = nchar(text)/sum(widths))
+
+  ends <- cumsum(widths)
+  starts <- c(1L, ends[-length(ends)] + 1L)
+  vapply(seq_along(ends), function(i) substr(text, starts[i], ends[i]), character(1L))
+}

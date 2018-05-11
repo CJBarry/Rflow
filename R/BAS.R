@@ -15,6 +15,9 @@
 #' character string or object of class DIS.MFpackage;
 #' a DIS package file (as file path or object), from which model dimensions
 #'  will be read
+#' @param MF96
+#' logical [1];
+#' whether to expect an MF96 formatted BAS file
 #'
 #' @return
 #' object of class BAS.MFpackage:\cr
@@ -29,19 +32,30 @@
 #'
 #' @examples
 #'
-read.BAS <- function(filename, dis){
+read.BAS <- function(filename, dis, MF96 = FALSE){
   dis <- switch(class(dis),
                 character = read.DIS(dis),
                 DIS.MFpackage = dis,
                 stop("invalid dis to read.BAS"))
 
   txt <- readLines(filename)
-  txt <- txt[!is.comment(txt, "#")]
 
-  #options
-  Options <- scan(text = txt[1], what = "character", quiet = T)
+  # remove comment/ title lines
+  if(MF96) txt <- txt[-(1:2)] else txt <- txt[!is.comment(txt, "#")]
 
-  #IBOUND array
+  # options
+  Options <- if(!MF96) scan(text = txt[1L], what = "character", quiet = TRUE)
+
+  # extent (only for MF96 - otherwise this information is in the DIS package)
+  if(MF96){
+    extent <- as.integer(read.fws(txt[1L]))
+    names(extent) <- c("NLAY", "NROW", "NCOL", "NPER", "ITMUNI", rep("", length(extent) - 5L))
+  }else extent <- NULL
+
+  # unit numbers (only for MF96 - otherwise this information is in the NAM file)
+  unitNos <- if(MF96) as.integer(read.fws(txt[2L], 3L))
+
+  # IBOUND array
   ln <- 2L
   IBOUND <- replicate(dis$extent["NLAY"], {
     nIB <- expected.lines.RIARRAY(txt[ln], dis$extent["NCOL"], dis$extent["NROW"], 1L)
