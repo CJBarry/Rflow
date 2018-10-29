@@ -88,6 +88,48 @@ MFimage <- function(mtx, gccs, grcs, zlim = "auto",
   image(flip(mtx, 2L), x = gccs, y = grcs, col = col, zlim = zlim, ...)
 }
 
+#' Contour plot MODFLOW variable matrix
+#'
+#' @param mtx
+#' matrix;
+#' variable to plot
+#' @param gccs
+#' numeric \code{[NCOL + 1]};
+#' column divider \eqn{x} co-ordinates, in ascending order
+#' @param grcs
+#' numeric \code{[NROW + 1]};
+#' row divider \eqn{y} co-ordinates, in ascending order
+#' @param ...
+#' arguments passed to contour
+#'
+#' @return NULL
+#' @importFrom graphics contour
+#' @export
+#'
+#' @examples
+#' # plot model domain
+#' fnms <- system.file(c("rflow_mf_demo.bas",
+#'                       "rflow_mf_demo.dis",
+#'                       "rflow_mf_demo.hds"),
+#'                     package = "Rflow")
+#'
+#' dis <- read.DIS(fnms[2L])
+#' bas <- read.BAS(fnms[1L], dis)
+#' hds <- readHDS.arr(fnms[3L])
+#'
+#' # grid divider co-ordinates (the example has a regular grid)
+#' gccs <- with(dis, seq(0, by = DELR, length.out = extent["NCOL"] + 1L))
+#' grcs <- with(dis, seq(0, by = DELC, length.out = extent["NROW"] + 1L))
+#'
+#' MFimage(bas$IBOUND[,, 1L], gccs, grcs, c(-1, 1),
+#'         c("blue", "grey", "transparent"))
+#' MFcontour(hds$data[,, 1L, dim(hds$data)[4L], "Head"],
+#'           gccs, grcs, add = TRUE, col = "blue")
+#'
+MFcontour <- function(mtx, gccs, grcs, ...){
+  contour(mids(gccs), mids(grcs), flip(mtx, 2L), ...)
+}
+
 #' Plot MODFLOW variable matrix from NetCDF
 #'
 #' @param nc
