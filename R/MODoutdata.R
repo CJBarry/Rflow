@@ -87,7 +87,7 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   if(!flux) readBin(to.read, "numeric", 2L - conc, time.bn)
   readChar(to.read, 16L)
   dimset1 <- readBin(to.read, "integer", 2L + flux, 4L)
-  if(!flux) l1 <- readBin(to.read, "integer", 1L, 4L)
+  l1 <- if(!flux) readBin(to.read, "integer", 1L, 4L) else 1L
   readBin(to.read, "numeric", prod(dimset1), hd.bn)
   #
   # - find dimension sets of first group of arrays (until next stress
@@ -240,9 +240,11 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
 
   spts_mtx <- spts_mtx[seq_len(ts_global),, drop = FALSE]
   spts_labels <- apply(spts_mtx[, c("sp", "ts", if(conc) "tts"), drop = FALSE], 1L, paste, collapse = "_")
-  time <- time[seq_len(ts_global)]
-  names(time) <- spts_labels
-  if(time.only) return(time)
+  if(!flux){
+    time <- time[seq_len(ts_global)]
+    names(time) <- spts_labels
+    if(time.only) return(time)
+  }
 
   # sorting into arrays
   OutList <- vector("list", length(Udims))
