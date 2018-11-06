@@ -184,3 +184,42 @@ MFncimage <- function(nc, variable,
           var.get.nc(nc, "grcs", start[2L], count[2L]) + xy0[2L],
           zlim, col, show.range, ...)
 }
+
+#' Color Ramp of hex strings
+#'
+#' @param cols
+#' character []; colours
+#' @param x
+#' numeric [];
+#' values to be ramped
+#' @param xlim
+#' numeric [2];
+#' range of \code{x} values to be ramped
+#' @param NAcol
+#' character [1];
+#' colour assigned to \code{NA} values of \code{x} or values outside range
+#' @param ...
+#' passed to \code{\link{colorRamp, pkg = grDevices}}
+#'
+#' @return
+#' character vector of hex strings
+#'
+#' @import grDevices
+#' @importFrom plyr splat
+#' @export
+#'
+#' @examples
+#' colorRampHex(c("white", "cyan", "green", "yellow", "red"),
+#'              c(0, 0, .1, .2, .5, .8), c(0, 1))
+#'
+colorRampHex <- function(cols, x, xlim = range(x, na.rm = TRUE), NAcol = "transparent", ...){
+  force(x)
+  xmin <- xlim[1L]; xmax <- xlim[2L]
+  crMtx <- colorRamp(cols, ...)((x - xmin)/(xmax - xmin))
+
+  crHex <- apply(crMtx, 1L, splat(rgbNA), maxColorValue = 255)
+  crHex[is.na(crHex)] <- NAcol
+  crHex
+}
+
+rgbNA <- function(...) if(any(is.na(c(...)))) NA else rgb(...)
