@@ -17,7 +17,7 @@
 #'  will be read
 #' @param MF96
 #' logical [1];
-#' whether to expect an MF96 formatted BAS file
+#' whether to expect an MF96 or MODFLOW-SURFACT formatted BAS file
 #'
 #' @return
 #' object of class BAS.MFpackage:\cr
@@ -33,10 +33,10 @@
 #' @examples
 #'
 read.BAS <- function(filename, dis, MF96 = FALSE){
-  dis <- switch(class(dis),
-                character = read.DIS(dis),
-                DIS.MFpackage = dis,
-                stop("invalid dis to read.BAS"))
+  if(!MF96) dis <- switch(class(dis),
+                          character = read.DIS(dis),
+                          DIS.MFpackage = dis,
+                          stop("invalid dis to read.BAS"))
 
   txt <- readLines(filename)
 
@@ -48,19 +48,19 @@ read.BAS <- function(filename, dis, MF96 = FALSE){
 
   # extent (only for MF96 - otherwise this information is in the DIS package)
   if(MF96){
-    extent <- as.integer(read.fws(txt[1L]))
+    extent <- as.integer(read.fws(txt[1L], 10L))
     names(extent) <- c("NLAY", "NROW", "NCOL", "NPER", "ITMUNI", rep("", length(extent) - 5L))
-  }else extent <- NULL
+  }else extent <- dis$extent
 
   # unit numbers (only for MF96 - otherwise this information is in the NAM file)
-  unitNos <- if(MF96) as.integer(read.fws(txt[2L], 3L))
+  IUNIT <- if(MF96) as.integer(read.fws(txt[2L], 3L))
 
   # IBOUND array
-  ln <- 2L
-  IBOUND <- replicate(dis$extent["NLAY"], {
-    nIB <- expected.lines.RIARRAY(txt[ln], dis$extent["NCOL"], dis$extent["NROW"], 1L)
+  ln <- if(MF96) 4L else 2L
+  IBOUND <- replicate(extent["NLAY"], {
+    nIB <- expected.lines.RIARRAY(txt[ln], extent["NCOL"], extent["NROW"], 1L)
     lns <- seq(ln, ln + nIB, 1L)
-    ar <- interpret.RIARRAY(txt[lns], T, dis$extent["NCOL"], 1L)
+    ar <- interpret.RIARRAY(txt[lns], T, extent["NCOL"], 1L)
     ln <<- ln + nIB + 1L
     ar
   }, simplify = FALSE)
@@ -70,20 +70,21 @@ read.BAS <- function(filename, dis, MF96 = FALSE){
   if(all(lgs == 1L)){
     IBOUND <- unname(c(IBOUND, recursive = TRUE))
   }else{
-    ar <- array(dim = dis$extent[c("NCOL", "NROW", "NLAY")])
+    ar <- array(dim = extent[c("NCOL", "NROW", "NLAY")])
     for(l in 1:length(IBOUND)) ar[,, l] <- IBOUND[[l]]
     IBOUND <- ar; rm(ar)
   }
 
-  #no flow cell head label
-  HNOFLO <- as.numeric(txt[ln])
+  # no flow cell head label
+  # - MODFLOW-SURFACT BAS files also have an entry for Datum; read.BAS ignores this
+  HNOFLO <- as.numeric(substr(txt[ln], 1L, 10L))
 
-  #starting head
+  # starting head
   ln <- ln + 1L
-  STRT <- replicate(dis$extent["NLAY"], {
-    nST <- expected.lines.RIARRAY(txt[ln], dis$extent["NCOL"], dis$extent["NROW"], 1L)
+  STRT <- replicate(extent["NLAY"], {
+    nST <- expected.lines.RIARRAY(txt[ln], extent["NCOL"], extent["NROW"], 1L)
     lns <- ln:(ln + nST)
-    ar <- interpret.RIARRAY(txt[lns], T, dis$extent["NCOL"], 1L)
+    ar <- interpret.RIARRAY(txt[lns], T, extent["NCOL"], 1L)
     ln <<- ln + nST + 1L
     ar
   }, simplify = FALSE)
@@ -93,12 +94,13 @@ read.BAS <- function(filename, dis, MF96 = FALSE){
   if(all(lgs == 1L)){
     STRT <- unname(c(STRT, recursive = TRUE))
   }else{
-    ar <- array(dim = dis$extent[c("NCOL", "NROW", "NLAY")])
+    ar <- array(dim = extent[c("NCOL", "NROW", "NLAY")])
     for(l in 1:length(STRT)) ar[,, l] <- STRT[[l]]
     STRT <- ar; rm(ar)
   }
 
-  structure(mget(c("Options", "IBOUND", "HNOFLO", "STRT")),
+  structure(mget(if(MF96)
+    c("extent", "IUNIT", "IBOUND", "HNOFLO", "STRT") else c("Options", "IBOUND", "HNOFLO", "STRT")),
             class = "BAS.MFpackage")
 }
 
