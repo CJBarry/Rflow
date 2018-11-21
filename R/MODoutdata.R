@@ -138,10 +138,14 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   #
   # - number of array types - allow for four extra which may not have
   #    featured in the first time step (e.g. Storage)
-  Narty.est <- length(dimsets) + 4L
+  Narty.est <- if(flux) length(dimsets) + 4L else{
+    # assumes that all array types feature in layer 1
+    # - OLF head (e.g.) only features in layer 1
+    length(dimsets[ls == 1L]) + 4L
+  }
   #
-  # - number of time steps - estimated based on file size and minimum
-  #    node estimate
+  # - number of time steps - estimated based on file size and number of
+  #    nodes within each array in the first time step
   nbpts_sensible <- length(dimsets)*((2L + conc)*4L +
                                        (if(flux) 0L else (2L - conc)*time.bn) +
                                        16L + 3L*4L) + sum(sapply(dimsets, prod))*hd.bn
@@ -155,8 +159,9 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   if(!flux) time <- numeric(nts.est)
   #
   # - dimensions log
-  #  -- rows for dimension set identifier, then dim1 (col), dim2 (row),
-  #      dim3 (layer, with budget file)
+  #  -- rows for dimension set identifier, then dim1 (usually col, perhaps
+  #      NSeg), dim2 (usually row), dim3 (layer, in the case of budget
+  #      file)
   dims <- array(NA_integer_, c(3L + flux, Narty.est))
   #
   #  -- unique dimension sets
