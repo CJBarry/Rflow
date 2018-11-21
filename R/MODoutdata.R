@@ -48,9 +48,14 @@
 #' either "all" (default) or integer vector of requested layers (not
 #'  currently implemented)
 #' @param sp_ts
-#' either "all", a length-2 integer vector or a 2-column matrix;
-#' which stress period-time step references to return (not currently
-#'  implemented)
+#' either "all", a 2-column integer matrix (columns for stress period, time
+#'  step), a character vector (elements in the form "sp_ts") or an integer
+#'  vector giving global time step numbers
+#' @param artypes
+#' character [];
+#' names of array types to be read (e.g. "Head", "FlowRightFace"); either
+#'  in capitals (" FLOW RIGHT FACE") or 'nice' format ("FlowRightFace");
+#'  "all" (default) returns all array types
 #'
 #'
 #' @return
@@ -71,7 +76,7 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
                         nf.to.NA = FALSE, nf.val = 999,
                         dry.to.NA = nf.to.NA, dry.val = nf.val,
                         CRs = list("all", "all"), lays = "all",
-                        sp_ts = "all"){
+                        sp_ts = "all", artypes = "all"){
   if(flux && time.only) stop("readHDS.arr: flux and time.only set to TRUE, but budget files do not store time.")
 
   if(file.info(file)$size == 0) stop(sprintf("readHDS.arr: %s is empty", file))
@@ -138,22 +143,36 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   #
   # - number of array types - allow for four extra which may not have
   #    featured in the first time step (e.g. Storage)
-  Narty.est <- if(flux) length(dimsets) + 4L else{
-    # assumes that all array types feature in layer 1
-    # - OLF head (e.g.) only features in layer 1
-    length(dimsets[ls == 1L]) + 4L
-  }
+  Narty.est <- if(identical(artypes, "all")){
+    if(flux) length(dimsets) + 4L else{
+      # assumes that all array types feature in layer 1
+      # - OLF head (e.g.) only features in layer 1
+      length(dimsets[ls == 1L]) + 4L
+    }
+  }else length(artypes)
+  if(artypes != "all") artypes <- nicearname(artypes)
   #
   # - number of time steps - estimated based on file size and number of
   #    nodes within each array in the first time step
   nbpts_sensible <- length(dimsets)*((2L + conc)*4L +
                                        (if(flux) 0L else (2L - conc)*time.bn) +
                                        16L + 3L*4L) + sum(sapply(dimsets, prod))*hd.bn
-  nts.est <- ceiling(file.info(file)$size/nbpts_sensible*1.2)
+  nts.est <- if(identical(sp_ts, "all")){
+    ceiling(file.info(file)$size/nbpts_sensible*1.2)
+  }else switch(class(sp_ts)[1L],
+               matrix = nrow(sp_ts),
+               character = length(sp_ts),
+               integer = length(sp_ts),
+               numeric = length(sp_ts),
+               stop("readHDS.arr: invalid `sp_ts`"))
+  if(is.character(sp_ts) && sp_ts != "all"){
+    sp_ts <- do.call(rbind, strsplit(sp_ts, "_"))
+    mode(sp_ts) <- "integer"
+  }
   #
   # - stress period, timestep matrix
   #  -- include space for a global time step counter
-  spts_mtx <- matrix(NA_integer_, nts.est, 3L + conc, dimnames = list(NULL, c("sp", "ts", if(conc) "tts", "ts_global2")))
+  spts_mtx <- matrix(NA_integer_, nts.est, 3L + conc, dimnames = list(NULL, c("sp", "ts", if(conc) "tts", "ts_global")))
   #
   # - model time
   if(!flux) time <- numeric(nts.est)
@@ -181,75 +200,99 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   close(to.read); to.read <- file(file, "rb")
 
   # get values
-  tssp_prev <- c(0L, 0L, if(conc) 0L)
+  tssp_prev <- tssp_prevRead <- c(0L, 0L, if(conc) 0L)
   ts_global <- 0L
+  ts_read <- 0L
   force(nf.to.NA); force(nf.val)
   repeat{
     # time step, stress period
     tssp <- readBin(to.read, "integer", 2L + conc, 4L)
     if(!length(tssp)) break # end of file reached
+    if(!all(tssp == tssp_prev)) ts_global <- ts_global + 1L
+
+    readAr <- if(identical(sp_ts, "all")) TRUE else
+      switch(class(sp_ts)[1L],
+             matrix = if(conc){
+               any(tssp[3L] == sp_ts[, 1L] & tssp[2L] == sp_ts[, 2L] & tssp[1L] == sp_ts[, 3L])
+             }else{
+               any(tssp[2L] == sp_ts[, 1L] & tssp[1L] == sp_ts[, 2L])
+             },
+             integer = ts_global %in% sp_ts,
+             numeric = ts_global %in% sp_ts)
 
     # model time
     if(!flux) t <- readBin(to.read, "numeric", 2L - conc, time.bn)[2L - conc]
 
-    if(!all(tssp == tssp_prev)){
-      ts_global <- ts_global + 1L
-      spts_mtx[ts_global,] <- c(rev(tssp), ts_global)
-
-      # sometimes MODHMS datasets have extraneous extra time steps
-      if(ts_global > nts.est) break
-
-      if(!flux) time[ts_global] <- t
-      an <- 1L
-    }else an <- an + 1L
-
     # array type
     at <- nicearname(readChar(to.read, 16L))
-    atn <- which(Uartys == at)
-    if(!any(atn)){
-      Uartys[which(is.na(Uartys))[1L]] <- at
+
+    readAr <- readAr && (artypes[1L] == "all" ||
+                           str_to_upper(nicearname(at)) %in% str_to_upper(nicearname(artypes)))
+
+    if(readAr){
       atn <- which(Uartys == at)
+      if(!any(atn)){
+        Uartys[which(is.na(Uartys))[1L]] <- at
+        atn <- which(Uartys == at)
+      }
     }
+
+    if(readAr && !all(tssp == tssp_prevRead)){
+        ts_read <- ts_read + 1L
+        spts_mtx[ts_read,] <- c(rev(tssp), ts_global)
+      }
+
+    if(!all(tssp == tssp_prev)){
+      # sometimes MODHMS datasets have extraneous extra time steps
+      if(ts_read > nts.est) break
+
+      if(readAr && !flux) time[ts_read] <- t
+      an <- 1L
+    }else an <- an + 1L
 
     # dimensions
     spds <- readBin(to.read, "integer", 2L + flux, 4L)
     l <- if(!flux) readBin(to.read, "integer", 1L, 4L) else 1L
 
     if(prod(spds) != 0){
-      if(!time.only){
+      if(readAr && !time.only){
         v <- readBin(to.read, "numeric", prod(spds), hd.bn)
         if(nf.to.NA) v[v == nf.val] <- NA_real_
         if(dry.to.NA && dry.val != nf.val) v[v == dry.val] <- NA_real_
       }else readBin(to.read, "numeric", prod(spds), hd.bn)
 
 
-      dims[-1L, atn] <- spds
-      if(!length(Udims) || !any(Idim <- which(sapply(Udims, identical, spds)))){
-        Idim <- length(Udims) + 1L
-        Udims[[Idim]] <- spds
+      if(readAr){
+        dims[-1L, atn] <- spds
+        if(!length(Udims) || !any(Idim <- which(sapply(Udims, identical, spds)))){
+          Idim <- length(Udims) + 1L
+          Udims[[Idim]] <- spds
+        }
+        dims[1L, atn] <- Idim
+
+        if(!flux) lays[l, ts_read, atn] <- l
+
+        artys[l, ts_read, atn] <- at
+
+        if(!time.only) vals[seq_along(v), l, ts_read, atn] <- v
       }
-      dims[1L, atn] <- Idim
-
-      if(!flux) lays[l, ts_global, atn] <- l
-
-      artys[l, ts_global, atn] <- at
-
-      if(!time.only) vals[seq_along(v), l, ts_global, atn] <- v
     }
 
     # store ts, sp for this array
     tssp_prev <- tssp
+    if(readAr) tssp_prevRead <- tssp
 
-    if(show.help) cat(".")
+    if(show.help && readAr) cat(".")
   }; if(show.help) cat("\n")
 
-  spts_mtx <- spts_mtx[seq_len(ts_global),, drop = FALSE]
+  spts_mtx <- spts_mtx[seq_len(ts_read),, drop = FALSE]
   spts_labels <- apply(spts_mtx[, c("sp", "ts", if(conc) "tts"), drop = FALSE], 1L, paste, collapse = "_")
   if(!flux){
-    time <- time[seq_len(ts_global)]
+    time <- time[seq_len(ts_read)]
     names(time) <- spts_labels
     if(time.only) return(time)
   }
+  if(ts_read == 0L) return(if(flux) list(data = NULL) else list(data = NULL, time = time))
 
   # sorting into arrays
   OutList <- vector("list", length(Udims))
@@ -257,7 +300,7 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   #
   # - by dimension set
   for(ds in seq_along(Udims)){
-    OutList[[ds]] <- vals[seq_len(prod(Udims[[ds]])),, seq_len(ts_global),
+    OutList[[ds]] <- vals[seq_len(prod(Udims[[ds]])),, seq_len(ts_read),
                           ds == dims[1L,] & !is.na(dims[1L,]), drop = FALSE]
     dim(OutList[[ds]]) <- if(flux){
       c(Udims[[ds]], dim(OutList[[ds]])[3:4])
