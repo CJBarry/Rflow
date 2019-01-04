@@ -150,7 +150,7 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
       length(dimsets[ls == 1L]) + 4L
     }
   }else length(artypes)
-  if(artypes != "all") artypes <- nicearname(artypes)
+  if(artypes[1L] != "all") artypes <- nicearname(artypes)
   #
   # - number of time steps - estimated based on file size and number of
   #    nodes within each array in the first time step
@@ -165,7 +165,7 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
                integer = length(sp_ts),
                numeric = length(sp_ts),
                stop("readHDS.arr: invalid `sp_ts`"))
-  if(is.character(sp_ts) && sp_ts != "all"){
+  if(is.character(sp_ts) && sp_ts[1L] != "all"){
     sp_ts <- do.call(rbind, strsplit(sp_ts, "_"))
     mode(sp_ts) <- "integer"
   }
@@ -238,9 +238,9 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
     }
 
     if(readAr && !all(tssp == tssp_prevRead)){
-        ts_read <- ts_read + 1L
-        spts_mtx[ts_read,] <- c(rev(tssp), ts_global)
-      }
+      ts_read <- ts_read + 1L
+      spts_mtx[ts_read,] <- c(rev(tssp), ts_global)
+    }
 
     if(!all(tssp == tssp_prev)){
       # sometimes MODHMS datasets have extraneous extra time steps
