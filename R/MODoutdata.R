@@ -43,7 +43,7 @@
 #' @param CRs
 #' length-2 list;
 #' elements are either "all" (default) or vectors of column/ row indices
-#'  which are requested (not currently implemented)
+#'  which are requested; can be helpful whe reading large files
 #' @param lays
 #' either "all" (default) or integer vector of requested layers (not
 #'  currently implemented)
@@ -94,6 +94,7 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   dimset1 <- readBin(to.read, "integer", 2L + flux, 4L)
   l1 <- if(!flux) readBin(to.read, "integer", 1L, 4L) else 1L
   readBin(to.read, "numeric", prod(dimset1), hd.bn)
+  if(flux && !identical(lays, "all")) dimset1[3L] <- sum(lays %in% seq_len(dimset1[3L]))
   #
   # - find dimension sets of first group of arrays (until next stress
   #    period is found or end of file is reached)
@@ -107,13 +108,14 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
     readChar(to.read, 16L)
 
     dimset <- readBin(to.read, "integer", 2L + flux, 4L)
-    dimsets <- c(dimsets, list(dimset))
     if(!flux){
       l <- readBin(to.read, "integer", 1L, 4L)
       ls <- c(ls, l)
     }
 
     readBin(to.read, "numeric", prod(dimset), hd.bn)
+    if(flux && !identical(lays, "all")) dimset[3L] <- sum(lays %in% seq_len(dimset[3L]))
+    dimsets <- c(dimsets, list(dimset))
   }
 
   # dimension set organise
@@ -139,7 +141,7 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   #
   # - number of layers (assume all layers were registered in the first
   #    time step)
-  Nlay <- if(flux) 1L else max(ls)
+  Nlay <- if(flux) 1L else if(identical(lays, "all")) max(ls) else length(lays)
   #
   # - number of array types - allow for four extra which may not have
   #    featured in the first time step (e.g. Storage)
@@ -187,7 +189,7 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   Udims <- list()
   #
   # - layer number log
-  if(!flux) lays <- array(NA_integer_, c(Nlay, nts.est, Narty.est))
+  if(!flux) lays_ar <- array(NA_integer_, c(Nlay, nts.est, Narty.est))
   #
   # - array type log
   artys <- array(NA_character_, c(if(!flux) Nlay else 1L, nts.est, Narty.est))
@@ -210,7 +212,15 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
     if(!length(tssp)) break # end of file reached
     if(!all(tssp == tssp_prev)) ts_global <- ts_global + 1L
 
-    readAr <- if(identical(sp_ts, "all")) TRUE else
+    readAr <- if(identical(sp_ts, "all")) TRUE else{
+      # if past all necessary time steps, then break
+      switch(class(sp_ts)[1L],
+             matrix = if(all(tssp[2L] > sp_ts[, 1L])) break,
+             integer = if(all(ts_global > sp_ts)) break,
+             numeric = if(all(ts_global > sp_ts)) break)
+
+      # determine whether to read the upcoming data array or whether to
+      #  skip, on the basis of time step
       switch(class(sp_ts)[1L],
              matrix = if(conc){
                any(tssp[3L] == sp_ts[, 1L] & tssp[2L] == sp_ts[, 2L] & tssp[1L] == sp_ts[, 3L])
@@ -219,6 +229,7 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
              },
              integer = ts_global %in% sp_ts,
              numeric = ts_global %in% sp_ts)
+    }
 
     # model time
     if(!flux) t <- readBin(to.read, "numeric", 2L - conc, time.bn)[2L - conc]
@@ -226,8 +237,18 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
     # array type
     at <- nicearname(readChar(to.read, 16L))
 
+    # whether to read the upcoming data array on the basis of array type
+    # - case and space insensitive
     readAr <- readAr && (artypes[1L] == "all" ||
                            str_to_upper(nicearname(at)) %in% str_to_upper(nicearname(artypes)))
+
+    # dimensions
+    spds <- readBin(to.read, "integer", 2L + flux, 4L)
+    l <- if(!flux) readBin(to.read, "integer", 1L, 4L) else 1L
+
+    # in case of heads array, whether to read the upcoming data array on
+    #  the basis of layer
+    if(!flux) readAr <- readAr && (lays == "all" || l %in% lays)
 
     if(readAr){
       atn <- which(Uartys == at)
@@ -250,13 +271,17 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
       an <- 1L
     }else an <- an + 1L
 
-    # dimensions
-    spds <- readBin(to.read, "integer", 2L + flux, 4L)
-    l <- if(!flux) readBin(to.read, "integer", 1L, 4L) else 1L
-
     if(prod(spds) != 0){
       if(readAr && !time.only){
         v <- readBin(to.read, "numeric", prod(spds), hd.bn)
+
+        # take only the required layers of a budget array
+        if(flux && !identical(lays, "all")){
+          dim(v) <- spds
+          v <- v[,, lays[lays %in% seq_len(spds[3L])]]
+          spds[3L] <- sum(lays %in% seq_len(spds[3L]))
+        }
+
         if(nf.to.NA) v[v == nf.val] <- NA_real_
         if(dry.to.NA && dry.val != nf.val) v[v == dry.val] <- NA_real_
       }else readBin(to.read, "numeric", prod(spds), hd.bn)
@@ -270,7 +295,7 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
         }
         dims[1L, atn] <- Idim
 
-        if(!flux) lays[l, ts_read, atn] <- l
+        if(!flux) lays_ar[l, ts_read, atn] <- l
 
         artys[l, ts_read, atn] <- at
 
