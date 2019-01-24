@@ -39,25 +39,30 @@ read.DIS <- function(file){
   txt <- readLines(file)
   txt <- txt[!is.comment(txt, c("#", "<"))]
 
-  #gets the numbers from the first (non-comment) entry
+  # gets the numbers from the first (non-comment) entry
   extent <- as.integer(str_extract_all(txt[1], "\\d+", simplify = T))
   names(extent) <- c("NLAY", "NROW", "NCOL", "NPER", "t_unit", "l_unit")
 
-  #gets the layer types
-  LAYCBD <- c(sapply(str_extract_all(txt[2], "\\d+"), as.integer))
+  # gets the layer types
+  # - listed 50 per line
+  LAYCBDtxt <- if(extent["NLAY"] <= 50L) txt[2L] else
+    txt[seq(2L, by = 1L, length.out = extent["NLAY"]%/%50L + 1L - (extent["NLAY"]%%50L == 0L))]
+  nLAYCBDlns <- length(LAYCBDtxt)
+  LAYCBDtxt <- paste(LAYCBDtxt, collapse = "")
+  LAYCBD <- c(sapply(str_extract_all(LAYCBDtxt, "\\d+"), as.integer))
 
-  #row spacing
-  nDRlns <- expected.lines.RIARRAY(txt[3], extent["NCOL"], 1L, 1L)
-  DELR <- interpret.RIARRAY(txt[3 + 0:nDRlns], T)
+  # row spacing
+  nDRlns <- expected.lines.RIARRAY(txt[2L + nLAYCBDlns], extent["NCOL"], 1L, 1L)
+  DELR <- interpret.RIARRAY(txt[2L + nLAYCBDlns + 0:nDRlns], T)
 
-  #column spacing
-  nDClns <- expected.lines.RIARRAY(txt[3L + 1L + nDRlns],
+  # column spacing
+  nDClns <- expected.lines.RIARRAY(txt[2L + nLAYCBDlns + 1L + nDRlns],
                                    extent["NROW"], 1L, 1L)
-  DELC <- interpret.RIARRAY(txt[4 + nDRlns + 0:nDClns], T)
+  DELC <- interpret.RIARRAY(txt[3L + nLAYCBDlns + nDRlns + 0:nDClns], T)
 
-  ln <- 4L + nDRlns + nDClns
+  ln <- 3L + nLAYCBDlns + nDRlns + nDClns
 
-  #layer divide elevations
+  # layer divide elevations
   ellns <- integer(extent["NLAY"] + 1L)
   elev <- rep(list(NULL), extent["NLAY"] + 1L)
   for(ld in 0:extent["NLAY"]){
@@ -73,6 +78,7 @@ read.DIS <- function(file){
     elev <- do.call(abind, c(elev, list(along = 3L)))
   }
 
+  # stress period set up
   sps <- as.data.frame(scan(text = trimws(txt[ln + 1:extent["NPER"]]),
                             what = list(double(), integer(), double(), character()), quiet = T))
   names(sps) <- c("PERLEN", "NSTP", "TSMULT", "TR")
@@ -130,7 +136,7 @@ write.DIS <- function(DIS, filename, title){
   writeLines(paste0(" ", paste(DIS$extent, collapse = "  ")), con)
 
   # layer types
-  writeLines(paste0(" ", paste(DIS$LAYCBD, collapse = " ")), con)
+  write(paste0(" ", DIS$LAYCBD), con, ncolumns = 50L, append = TRUE)
 
   # column and row spacings
   writeLines(if(isTRUE(all.equal(names(DIS$DELR), "CNSTNT"))){
