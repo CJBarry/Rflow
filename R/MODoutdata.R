@@ -43,7 +43,7 @@
 #' @param CRs
 #' length-2 list;
 #' elements are either "all" (default) or vectors of column/ row indices
-#'  which are requested
+#'  which are requested (not yet implemented)
 #' @param lays
 #' either "all" (default) or integer vector of requested layers; can be
 #'  helpful whe reading large files
