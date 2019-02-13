@@ -127,7 +127,11 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   iDS <- sapply(dimsets, function(ds) which(sapply(UDS, identical, ds)))
   UiDS <- unique(iDS)
   #
+  # - number of array types per dimset
   UDSCounts <- sapply(UiDS, function(i) sum(i == iDS))
+  #
+  # - max number of array types per dimset, with contingency
+  mUDSC <- max(UDSCounts) + 2L
 
   # initialise
   # - estimated maximum number of nodes
@@ -174,7 +178,8 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   #
   # - stress period, timestep matrix
   #  -- include space for a global time step counter
-  spts_mtx <- matrix(NA_integer_, nts.est, 3L + conc, dimnames = list(NULL, c("sp", "ts", if(conc) "tts", "ts_global")))
+  spts_mtx <- matrix(NA_integer_, nts.est, 3L + conc,
+                     dimnames = list(NULL, c("sp", "ts", if(conc) "tts", "ts_global")))
   #
   # - model time
   if(!flux) time <- numeric(nts.est)
@@ -183,20 +188,26 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   #  -- rows for dimension set identifier, then dim1 (usually col, perhaps
   #      NSeg), dim2 (usually row), dim3 (layer, in the case of budget
   #      file)
-  dims <- array(NA_integer_, c(3L + flux, Narty.est))
+  dims <- array(NA_integer_, c(3L + flux, mUDSC, NUDS + 1L))
   #
-  #  -- unique dimension sets
-  Udims <- list()
+  #  -- unique dimension sets, can be added to if more found
+  Udims <- UDS
   #
   # - layer number log
-  if(!flux) lays_ar <- array(NA_integer_, c(Nlay, nts.est, Narty.est))
+  if(!flux) lays_ar <- array(NA_integer_, c(Nlay, nts.est, mUDSC, NUDS + 1L))
   #
   # - array type log
-  artys <- array(NA_character_, c(if(!flux) Nlay else 1L, nts.est, Narty.est))
-  Uartys <- rep(NA_character_, Narty.est)
+  artys <- array(NA_character_,
+                 c(if(!flux) Nlay else 1L, nts.est, mUDSC, NUDS + 1L))
+  Uartys <- array(NA_character_, c(mUDSC, NUDS + 1L))
   #
   # - values
-  if(!time.only) vals <- array(NA_real_, c(Nnodes_max, if(!flux) Nlay else 1L, nts.est, Narty.est))
+  if(!time.only) vals <- array(NA_real_,
+                               c(Nnodes_max,
+                                 if(!flux) Nlay else 1L,
+                                 nts.est,
+                                 mUDSC,
+                                 NUDS + 1L))
 
   # reset reading position
   close(to.read); to.read <- file(file, "rb")
@@ -250,11 +261,20 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
     #  the basis of layer
     if(!flux) readAr <- readAr && (lays == "all" || l %in% lays)
 
+    # dimset number
     if(readAr){
-      atn <- which(Uartys == at)
+      Idim <- which(sapply(Udims, identical, spds))
+      if(!any(Idim)){
+        Idim <- length(Udims) + 1L
+        Udims[[Idim]] <- spds
+      }
+    }
+
+    if(readAr){
+      atn <- which(Uartys[, Idim] == at)
       if(!any(atn)){
-        Uartys[which(is.na(Uartys))[1L]] <- at
-        atn <- which(Uartys == at)
+        Uartys[which(is.na(Uartys[, Idim]))[1L], Idim] <- at
+        atn <- which(Uartys[, Idim] == at)
       }
     }
 
@@ -288,18 +308,15 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
 
 
       if(readAr){
-        dims[-1L, atn] <- spds
-        if(!length(Udims) || !any(Idim <- which(sapply(Udims, identical, spds)))){
-          Idim <- length(Udims) + 1L
-          Udims[[Idim]] <- spds
-        }
-        dims[1L, atn] <- Idim
+        dims[-1L, atn, Idim] <- spds
 
-        if(!flux) lays_ar[l, ts_read, atn] <- l
+        dims[1L, atn, Idim] <- Idim
 
-        artys[l, ts_read, atn] <- at
+        if(!flux) lays_ar[l, ts_read, atn, Idim] <- l
 
-        if(!time.only) vals[seq_along(v), l, ts_read, atn] <- v
+        artys[l, ts_read, atn, Idim] <- at
+
+        if(!time.only) vals[seq_along(v), l, ts_read, atn, Idim] <- v
       }
     }
 
@@ -324,21 +341,21 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   names(OutList) <- if(length(Udims) > 1L) paste0("data", seq_along(Udims)) else "data"
   #
   # - by dimension set
-  for(ds in seq_along(Udims)){
-    OutList[[ds]] <- vals[seq_len(prod(Udims[[ds]])),, seq_len(ts_read),
-                          ds == dims[1L,] & !is.na(dims[1L,]), drop = FALSE]
-    dim(OutList[[ds]]) <- if(flux){
-      c(Udims[[ds]], dim(OutList[[ds]])[3:4])
+  for(Idim in seq_along(Udims)){
+    OutList[[Idim]] <- vals[seq_len(prod(Udims[[Idim]])),, seq_len(ts_read),
+                            !is.na(dims[1L,, Idim]), Idim, drop = FALSE]
+    dim(OutList[[Idim]]) <- if(flux){
+      c(Udims[[Idim]], dim(OutList[[Idim]])[3:4])
     }else{
-      c(Udims[[ds]], dim(OutList[[ds]])[2:4])
+      c(Udims[[Idim]], dim(OutList[[Idim]])[2:4])
     }
 
-    dimnames(OutList[[ds]])[4:5] <- list(spts_labels, Uartys[ds == dims[1L,] & !is.na(dims[1L,])])
+    dimnames(OutList[[Idim]])[4:5] <- list(spts_labels, Uartys[!is.na(dims[1L,, Idim]), Idim])
 
     # remove extraneous layers and array types for this dimension set
-    OutList[[ds]] <- OutList[[ds]][,,
-                                   if(flux) bquote() else !apply(is.na(OutList[[ds]]), 3L, all),,
-                                   !apply(is.na(OutList[[ds]]), 5L, all), drop = FALSE]
+    OutList[[Idim]] <- OutList[[Idim]][,,
+                                       if(flux) bquote() else !apply(is.na(OutList[[Idim]]), 3L, all),,
+                                       !apply(is.na(OutList[[Idim]]), 5L, all), drop = FALSE]
   }
   if(!flux) OutList$time <- time
 
