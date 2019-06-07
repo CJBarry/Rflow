@@ -9,6 +9,10 @@
 #'
 #' @param filename
 #' character string
+#' @param MF96
+#' logical[1]; read as MODFLOW96 or MODFLOW-SURFACT format?
+#' @param NLAY
+#' integer [1]; number of layers - only required for MF96 = TRUE
 #'
 #' @return
 #' list with class HFB.MFpackage, with elements:\cr
@@ -31,7 +35,7 @@
 #' @export
 #'
 #' @examples
-read.HFB <- function(filename){
+read.HFB <- function(filename, MF96 = FALSE, NLAY){
   con <- file(filename, "rt")
   on.exit(close(con))
 
@@ -46,18 +50,42 @@ read.HFB <- function(filename){
   if(com) readLines(con, 1L)
 
   # free format read
-  hd <- read.table(con, nrows = 1L,
-                   col.names = c("NPHFB", "MXFB", "NHFBNP"))
+  if(MF96){
+    hd <- read.table(con, nrows = 1L)
+    names(hd) <- c("NHFB", "NHFBOL")[1:length(hd)]
+  }else{
+    hd <- read.table(con, nrows = 1L,
+                     col.names = c("NPHFB", "MXFB", "NHFBNP"))
 
-  if(hd$NPHFB > 0L) stop({
-    "some barriers are defined by parameters - this feature needs to be added to read.HFB"
-  })
+    if(hd$NPHFB > 0L) stop({
+      "some barriers are defined by parameters - this feature needs to be added to read.HFB"
+    })
+  }
 
-  # free format read
-  # assuming steady state data
-  data <- data.table(read.table(con, nrows = hd$NHFBNP,
-                                col.names = c("L", "IROW1", "ICOL1",
-                                              "IROW2", "ICOL2", "Hydchr")))
+  if(MF96){
+    data <- vector("list", NLAY)
+    for(lay in seq_len(NLAY)){
+      nhfb_lay <- as.integer(trimws(readLines(con, 1L)))
+      if(!length(nhfb_lay)) nhfb_lay <- 0L
+      if(nhfb_lay > 0L){
+        data[[lay]] <- data.table(read.fwf(con, n = nhfb_lay, widths = rep(10L, 5L),
+                            header = FALSE,
+                            col.names = c("IROW1", "ICOL1",
+                                          "IROW2", "ICOL2", "Hydchr")))
+        data[[lay]][, L:= lay]
+        setcolorder(data[[lay]], c("L", "IROW1", "ICOL1",
+                                   "IROW2", "ICOL2", "Hydchr"))
+      }else data[lay] <- list(NULL)
+    }
+
+    data <- rbindlist(data)
+  }else{
+    # free format read
+    # assuming steady state data
+    data <- data.table(read.table(con, nrows = hd$NHFBNP,
+                                  col.names = c("L", "IROW1", "ICOL1",
+                                                "IROW2", "ICOL2", "Hydchr")))
+  }
 
   structure(list(header = hd, data = data), class = "HFB.MFpackage")
 }
@@ -90,8 +118,8 @@ write.HFB <- function(HFB, filename, title = ""){
       paste("#", title))
   }, con)
 
-  writeLines(as.character(c(HFB$header, recursive = TRUE)),
-             con, sep = "  ")
+  writeLines(formatC(c(0, 0, HFB$header, recursive = TRUE), width = 10L, format = "f", digits = 0L),
+             con, sep = "")
   writeLines("", con)
 
   HFB$data[, {
