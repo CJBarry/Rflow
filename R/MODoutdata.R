@@ -343,7 +343,8 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
             v[CRLs_tmp[, -3L, drop = FALSE]]
           }
 
-          vals[seq_along(valsAtCells), 1L, ts_read, atn, Idim] <- valsAtCells
+          subs <- if(flux) TRUE else CRLs[, 3L] == l
+          vals[seq_along(valsAtCells)[subs], 1L, ts_read, atn, Idim] <- valsAtCells[subs]
         }
       }
     }
