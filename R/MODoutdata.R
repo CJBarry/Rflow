@@ -40,10 +40,12 @@
 #' @param nf.val
 #' logical;
 #' if nf.to.NA, what head value indicates a no flow cell?
-#' @param CRs
-#' length-2 list;
-#' elements are either "all" (default) or vectors of column/ row indices
-#'  which are requested (not yet implemented)
+#' @param CRLs
+#' NULL or 3-column index matrix [column, row, layer];
+#' If not NULL, extracts data only for these cell references.  If any dimension
+#'  too large, NA values will be returned for that entry without warning (this
+#'  makes it easier to deal with datasets that have a mix of dimension sets).
+#'  Row names are preserved in the output, which is useful for well results.
 #' @param lays
 #' either "all" (default) or integer vector of requested layers; can be
 #'  helpful whe reading large files
@@ -60,7 +62,7 @@
 #'
 #' @return
 #' a list with one or two elements:\cr
-#'   \code{$data}: num \code{[NCOL, NROW, NLAY, NTS]}; head values, only if
+#'   \code{$data}: num \code{[NCOL, NROW, NLAY, NTS, arrayType]}; values, only if
 #'    \code{time.only = FALSE}
 #'   \code{$time}: num \code{[NTS]}; time at end of each time step,
 #'    relative to model start
@@ -75,7 +77,7 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
                         time.bn = 4L, hd.bn = 4L, show.help = TRUE,
                         nf.to.NA = FALSE, nf.val = 999,
                         dry.to.NA = nf.to.NA, dry.val = nf.val,
-                        CRs = list("all", "all"), lays = "all",
+                        CRLs = NULL, lays = "all",
                         sp_ts = "all", artypes = "all"){
   if(flux && time.only) stop("readHDS.arr: flux and time.only set to TRUE, but budget files do not store time.")
 
@@ -136,12 +138,17 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   # initialise
   # - estimated maximum number of nodes
   #  -- for HDS format, this is nodes within a layer
-  Nnodes_max <- max(sapply(dimsets, prod))
-  Nnodes_min <- min(sapply(dimsets, prod))
-  #
-  #  -- reasonable safe number of nodes, given that some time steps may have
-  #      different sets of arrays (e.g. storage)
-  Nnodes_sensible <- (sum(sapply(dimsets, prod)) + Nnodes_min*2L)/(length(dimsets) + 2L)
+  if(is.null(CRLs)){
+    Nnodes_max <- max(sapply(dimsets, prod))
+    Nnodes_min <- min(sapply(dimsets, prod))
+    #
+    #  -- reasonable safe number of nodes, given that some time steps may have
+    #      different sets of arrays (e.g. storage)
+    Nnodes_sensible <- (sum(sapply(dimsets, prod)) + Nnodes_min*2L)/(length(dimsets) + 2L)
+  }else{
+    if(!is.matrix(CRLs) || ncol(CRLs) != 3L) stop("RFlow::readHDS.arr: invalid CRLs")
+    Nnodes_max <- Nnodes_min <- Nnodes_sensible <- nrow(CRLs)
+  }
   #
   # - number of layers (assume all layers were registered in the first
   #    time step)
@@ -204,7 +211,7 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   # - values
   if(!time.only) vals <- array(NA_real_,
                                c(Nnodes_max,
-                                 if(!flux) Nlay else 1L,
+                                 if(is.null(CRLs)){if(!flux) Nlay else 1L} else 1L,
                                  nts.est,
                                  mUDSC,
                                  NUDS + 1L))
@@ -294,10 +301,10 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
     if(prod(spds) != 0){
       if(readAr && !time.only){
         v <- readBin(to.read, "numeric", prod(spds), hd.bn)
+        dim(v) <- spds
 
         # take only the required layers of a budget array
         if(flux && !identical(lays, "all")){
-          dim(v) <- spds
           v <- v[,, lays[lays %in% seq_len(spds[3L])]]
           spds[3L] <- sum(lays %in% seq_len(spds[3L]))
         }
@@ -316,7 +323,28 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
 
         artys[l, ts_read, atn, Idim] <- at
 
-        if(!time.only) vals[seq_along(v), l, ts_read, atn, Idim] <- v
+        if(!time.only) if(is.null(CRLs)){
+          vals[seq_along(v), l, ts_read, atn, Idim] <- v
+        }else{
+          CRLs_tmp <- CRLs
+
+          valsAtCells <- if(flux){
+            # remove references outside array dimensions
+            CRLs_tmp[!(CRLs_tmp[, 1L] %in% seq_len(spds[1L]) &
+                         CRLs_tmp[, 2L] %in% seq_len(spds[2L]) &
+                         CRLs_tmp[, 3L] %in% seq_len(spds[3L])),] <- NA_integer_
+
+            v[CRLs_tmp]
+          }else{
+            CRLs_tmp[!(CRLs_tmp[, 1L] %in% seq_len(spds[1L]) &
+                         CRLs_tmp[, 2L] %in% seq_len(spds[2L]) &
+                         CRLs_tmp[, 3L] == l),] <- NA_integer_
+
+            v[CRLs_tmp[, -3L, drop = FALSE]]
+          }
+
+          vals[seq_along(valsAtCells), 1L, ts_read, atn, Idim] <- valsAtCells
+        }
       }
     }
 
@@ -337,25 +365,38 @@ readHDS.arr <- function(file, conc = FALSE, flux = FALSE, time.only = FALSE,
   if(ts_read == 0L) return(if(flux) list(data = NULL) else list(data = NULL, time = time))
 
   # sorting into arrays
-  OutList <- vector("list", length(Udims))
-  names(OutList) <- if(length(Udims) > 1L) paste0("data", seq_along(Udims)) else "data"
+  if(is.null(CRLs)){
+    OutList <- vector("list", length(Udims))
+    names(OutList) <- if(length(Udims) > 1L) paste0("data", seq_along(Udims)) else "data"
+  }else OutList <- list(data = NULL)
   #
   # - by dimension set
-  for(Idim in seq_along(Udims)){
-    OutList[[Idim]] <- vals[seq_len(prod(Udims[[Idim]])),, seq_len(ts_read),
-                            !is.na(dims[1L,, Idim]), Idim, drop = FALSE]
-    dim(OutList[[Idim]]) <- if(flux){
-      c(Udims[[Idim]], dim(OutList[[Idim]])[3:4])
-    }else{
-      c(Udims[[Idim]], dim(OutList[[Idim]])[2:4])
+  if(is.null(CRLs)){
+    for(Idim in seq_along(Udims)){
+      OutList[[Idim]] <- vals[seq_len(prod(Udims[[Idim]])),, seq_len(ts_read),
+                              !is.na(dims[1L,, Idim]), Idim, drop = FALSE]
+      dim(OutList[[Idim]]) <- if(flux){
+        c(Udims[[Idim]], dim(OutList[[Idim]])[3:4])
+      }else{
+        c(Udims[[Idim]], dim(OutList[[Idim]])[2:4])
+      }
+
+      dimnames(OutList[[Idim]])[4:5] <- list(spts_labels, Uartys[!is.na(dims[1L,, Idim]), Idim])
+
+      # remove extraneous layers and array types for this dimension set
+      OutList[[Idim]] <- OutList[[Idim]][,,
+                                         if(flux) bquote() else !apply(is.na(OutList[[Idim]]), 3L, all),,
+                                         !apply(is.na(OutList[[Idim]]), 5L, all), drop = FALSE]
     }
-
-    dimnames(OutList[[Idim]])[4:5] <- list(spts_labels, Uartys[!is.na(dims[1L,, Idim]), Idim])
-
-    # remove extraneous layers and array types for this dimension set
-    OutList[[Idim]] <- OutList[[Idim]][,,
-                                       if(flux) bquote() else !apply(is.na(OutList[[Idim]]), 3L, all),,
-                                       !apply(is.na(OutList[[Idim]]), 5L, all), drop = FALSE]
+  }else{
+    OutList[["data"]] <- adrop(vals[, 1L, seq_len(ts_read),,, drop = FALSE],
+                               c(FALSE, TRUE, FALSE, FALSE, FALSE))
+    dim(OutList[["data"]]) <- c(nrow(CRLs), ts_read, prod(dim(dims)[2:3]))
+    OutList[["data"]] <- OutList[["data"]][,, !is.na(dims[1L,,]), drop = FALSE]
+    dimnames(OutList[["data"]]) <- list(if(is.null(rownames(CRLs))){
+      apply(CRLs, 1L, paste, collapse = ",")
+    } else rownames(CRLs),
+    spts_labels, Uartys[!is.na(dims[1L,,])])
   }
   if(!flux) OutList$time <- time
 
